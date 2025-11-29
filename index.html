@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="app_title">نظام إدارة الأداء (PMS)</title>
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.21/jspdf.plugin.autotable.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script>
+        const translations = {
+            'ar': {
+                // العناوين والأزرار الرئيسية
+                'app_title': 'نظام إدارة الأداء (PMS)',
+                'menu_dashboard': 'لوحة التحكم العامة',
+                'menu_employee_review': 'نتيجة التقييم للموظف', // تم التغيير هنا
+                'menu_record': 'تسجيل الأداء',
+                'menu_kpis': 'إدارة المؤشرات (KPIs)',
+                'menu_employees': 'إدارة الموظفين',
+                'menu_departments': 'إدارة الأقسام',
+                'menu_goals': 'تحديد الأهداف الزمنية',
+                'menu_records_list': 'سجلات الأداء',
+                'menu_reports': 'التقارير والإحصائيات',
+                'menu_data_mgmt': 'إدارة البيانات',
+                
+                // الأزرار العامة
+                'btn_add': 'إضافة',
+                'btn_save': 'حفظ',
+                'btn_edit': 'تعديل',
+                'btn_delete': 'حذف',
+                'btn_cancel': 'إلغاء',
+                'btn_save_record': 'حفظ السجل',
+                'btn_generate_report': 'توليد التقرير',
+                'btn_export_pdf': 'تصدير PDF',
+                'btn_export_excel': 'تصدير Excel',
+                'btn_export_data': 'تصدير البيانات (JSON)',
+                'btn_import_data': 'استيراد البيانات',
+                'btn_clear_data': 'مسح الكل',
+                'btn_set_goal': 'تحديد الهدف',
+                'btn_generate_overall': 'توليد التقرير الإجمالي',
+                'btn_print_report': 'طباعة التقرير (A4)', // جديد
+                'btn_search': 'بحث', // جديد
+                
+                // عناوين الأقسام
+                'subtitle_main_stats': 'الإحصائيات الرئيسية',
+                'subtitle_dept_perf': 'أداء الأقسام (آخر 90 يوماً)',
+                'subtitle_top_emp': 'أفضل 5 موظفين (آخر 30 يوماً)',
+                'subtitle_daily_perf': 'تطور الأداء اليومي',
+                'subtitle_overall_report': 'التقرير الإجمالي لأداء المنظمة',
+                'subtitle_employee_list': 'قائمة الموظفين', // جديد
+                
+                // حقول الجداول والنماذج
+                'table_name': 'الاسم',
+                'table_actions': 'الإجراءات',
+                'table_id': 'الرقم التعريفي',
+                'table_dept': 'القسم',
+                'table_emp_name': 'اسم الموظف',
+                'table_emp_id': 'الرقم التعريفي للموظف', 
+                'table_hire_date': 'تاريخ التوظيف',
+                'table_weight': 'الوزن (%)',
+                'table_type': 'النوع',
+                'table_score': 'النتيجة',
+                'table_date': 'التاريخ',
+                'table_kpis_count': 'عدد المؤشرات',
+                'table_target_val': 'القيمة المستهدفة',
+                'table_end_date': 'تاريخ الانتهاء',
+                'table_status': 'الحالة',
+                'table_weighted_score': 'النتيجة الموزونة',
+                'kpi_positive': 'إيجابي (الأكثر أفضل)',
+                'kpi_negative': 'سلبي (الأقل أفضل)',
+                'kpi_weight': 'الوزن (%)',
+                'kpi_type': 'النوع',
+                'kpi_name': 'اسم المؤشر',
+                'kpi_placeholder_general': 'مؤشر عام (لكل الأقسام)',
+                'kpi_value_placeholder': 'قيمة الأداء المحققة (1-100)',
+                'select_dept_placeholder': 'اختر القسم',
+                'select_emp_placeholder': 'اختر الموظف',
+                'select_kpi_placeholder': 'اختر مؤشر الأداء',
+                'filter_all_dept': 'جميع الأقسام', // جديد
+                
+                // الإحصائيات وبطاقات الأداء
+                'stat_total_emp': 'إجمالي الموظفين',
+                'stat_total_departments': 'إجمالي الأقسام',
+                'stat_active_kpis': 'مؤشرات الأداء النشطة',
+                'stat_avg_performance': 'متوسط الأداء العام',
+                'stat_current_score': 'متوسط الأداء الحالي',
+                'stat_goal_status': 'حالة الهدف الزمني',
+                'stat_no_goals': 'لا يوجد هدف محدد',
+                'stat_goal_achieved': 'الهدف محقق',
+                'stat_goal_behind': 'متأخر عن الهدف',
+                'stat_avg_period': 'متوسط الفترة:',
+                'overall_avg': 'المتوسط الإجمالي',
+                'status_expired': 'منتهي',
+                'status_active': 'نشط',
+                
+                // الرسائل والتنبيهات
+                'alert_enter_kpi_name_weight': 'الرجاء إدخال اسم المؤشر والوزن (بين 1 و 100).',
+                'alert_kpi_added': 'تمت إضافة المؤشر بنجاح!',
+                'alert_kpi_updated': 'تم تحديث المؤشر بنجاح!',
+                'alert_kpi_weight_exceeds': 'تجاوز مجموع أوزان مؤشرات القسم 100%. الوزن الكلي هو:',
+                'msg_remaining_weight': 'الوزن المتبقي المتاح لهذا القسم',
+                'msg_select_employee_kpi': 'الرجاء اختيار موظف لعرض مؤشرات الأداء الخاصة به.',
+                'msg_no_kpis_for_emp': 'لا توجد مؤشرات أداء محددة لهذا الموظف.',
+                'alert_invalid_weight': 'مجموع أوزان مؤشرات هذا الموظف لا يساوي 100%. الإجمالي الحالي هو:',
+                'alert_fill_all_goal_fields': 'الرجاء ملء جميع حقول الهدف الزمني.',
+                'alert_goal_set': 'تم تحديد الهدف الزمني بنجاح.',
+                'alert_invalid_record_value': 'يجب أن تكون قيمة الأداء بين 1 و 100 لكل المؤشرات.',
+                'alert_fill_all_record_fields': 'الرجاء اختيار الموظف والتاريخ وإدخال قيم جميع المؤشرات.',
+                'alert_record_saved': 'تم حفظ/تحديث سجل الأداء بنجاح.',
+                'msg_select_employee_records': 'الرجاء اختيار موظف لعرض سجلات أدائه.',
+                'msg_no_records_for_emp': 'لا توجد سجلات أداء لهذا الموظف.',
+                'msg_select_employee_dash': 'الرجاء اختيار موظف لعرض نتيجة تقييمه.', // تم التغيير هنا
+                'alert_fill_all_report_fields': 'الرجاء اختيار الموظف وتحديد الفترة الزمنية للتقرير.',
+                'alert_start_date_after_end': 'يجب أن يكون تاريخ البداية أقدم من تاريخ النهاية.',
+                'report_title_emp': 'تقرير أداء الموظف',
+                'to': 'إلى',
+                'msg_no_records_in_period': 'لا توجد سجلات أداء في الفترة المحددة.',
+                'alert_no_data_to_export': 'لا توجد بيانات لتصديرها في التقرير.',
+                'alert_select_file': 'الرجاء اختيار ملف JSON للاستيراد.',
+                'alert_restore_confirm': 'هل أنت متأكد من استعادة البيانات؟ سيتم مسح البيانات الحالية.',
+                'alert_data_imported': 'تم استيراد البيانات بنجاح.',
+                'alert_invalid_json': 'خطأ: الملف ليس بتنسيق JSON صحيح.',
+                'alert_clear_confirm': 'هل أنت متأكد من مسح جميع بيانات التطبيق؟ لا يمكن التراجع عن هذا الإجراء.',
+                'alert_data_cleared': 'تم مسح جميع البيانات بنجاح.',
+                'alert_delete_confirm': 'هل أنت متأكد من حذف هذا العنصر؟',
+                'alert_dept_added': 'تمت إضافة القسم بنجاح!',
+                'alert_dept_updated': 'تم تحديث القسم بنجاح!',
+                'alert_emp_added': 'تمت إضافة الموظف بنجاح!',
+                'alert_emp_updated': 'تم تحديث بيانات الموظف بنجاح!',
+                'alert_duplicate_employee_id': 'هذا الرقم التعريفي للموظف مستخدم بالفعل. الرجاء اختيار رقم آخر.'
+            }
+        };
+
+        let currentLanguage = 'ar'; 
+        
+        function translate(key) {
+            return translations[currentLanguage][key] || key;
+        }
+
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            document.querySelectorAll('[data-i18n]').forEach(element => {
+                const key = element.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    element.textContent = translations[lang][key];
+                }
+            });
+            // تحديث محتوى بعض العناصر المعتمدة على الترجمة
+            if(window.updateDashboardStats) updateDashboardStats();
+            if(window.updateEmployeeDashboard) updateEmployeeDashboard();
+        }
+        
+        // دالة لعرض الشاشات
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.style.display = 'none';
+            });
+            document.getElementById(screenId).style.display = 'block';
+            
+            // تحديث محتوى الشاشة عند فتحها (الدوال معرفة في script.js)
+            if (screenId === 'dashboard-screen') window.updateDashboardStats();
+            if (screenId === 'personal-dashboard-screen') window.updateDashboardEmployeeSelect();
+            // تحديث وظيفة عرض السجلات لتشمل الفلاتر الجديدة
+            if (screenId === 'records-list-screen') {
+                window.updateRecordsFilters();
+                window.renderPerformanceRecords();
+            }
+            if (screenId === 'reports-screen') window.updateReportTargetSelect();
+            if (screenId === 'goals-screen') window.updateGoalKpiSelect();
+            if (screenId === 'record-screen') {
+                window.updateRecordEmployeeSelect();
+                const container = document.getElementById('record-kpis-container');
+                const messageP = document.getElementById('record-kpi-message');
+                if (container) container.innerHTML = ''; 
+                if (container) container.style.display = 'none';
+                if (messageP) {
+                    messageP.style.display = 'block';
+                    messageP.textContent = translate('msg_select_employee_kpi');
+                }
+            }
+            if (screenId === 'departments-screen') window.renderDepartments();
+            if (screenId === 'employees-screen') window.renderEmployees(); // وظيفة renderEmployees ستستدعي دالة التصفية الجديدة
+            if (screenId === 'kpis-screen') window.renderKPIs();
+            if (screenId === 'roles-screen' && window.initRolesPage) window.initRolesPage();
+            
+            if (window.applyRolePermissions) window.applyRolePermissions();
+        }
+        
+        // تعيين اللغة الافتراضية عند التحميل
+        document.addEventListener('DOMContentLoaded', () => {
+            setLanguage(currentLanguage);
+        });
+    </script>
+
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2 data-i18n="app_title">نظام إدارة الأداء</h2>
+        <div class="lang-switch">
+            <label for="language-select" data-i18n="lang_label">اللغة</label>
+            <select id="language-select" onchange="handleLanguageChange(this.value)">
+                <option value="ar">العربية</option>
+                <option value="en">English</option>
+            </select>
+        </div>
+        <nav>
+            <a href="#" id="menu-dashboard" onclick="showScreen('dashboard-screen')" data-i18n="menu_dashboard">لوحة التحكم العامة</a>
+            
+            <hr>
+            
+            <a href="#" id="menu-departments" onclick="showScreen('departments-screen')" data-i18n="menu_departments">إدارة الأقسام</a>
+            <a href="#" id="menu-employees" onclick="showScreen('employees-screen')" data-i18n="menu_employees">إدارة الموظفين</a>
+            <a href="#" id="menu-kpis" onclick="showScreen('kpis-screen')" data-i18n="menu_kpis">إدارة المؤشرات (KPIs)</a>
+            <a href="#" id="menu-goals" onclick="showScreen('goals-screen')" data-i18n="menu_goals">تحديد الأهداف الزمنية</a>
+            <hr>
+            <a href="#" id="menu-record" onclick="showScreen('record-screen')" data-i18n="menu_record">تسجيل الأداء</a>
+            <a href="#" id="menu-records-list" onclick="showScreen('records-list-screen')" data-i18n="menu_records_list">سجلات الأداء</a>
+            <hr>
+            <a href="#" id="menu-personal" onclick="showScreen('personal-dashboard-screen')" data-i18n="menu_employee_review">نتيجة التقييم للموظف</a>
+            <a href="#" id="menu-reports" onclick="showScreen('reports-screen')" data-i18n="menu_reports">التقارير والإحصائيات</a>
+            <a href="#" id="menu-data-mgmt" onclick="showScreen('data-management-screen')" data-i18n="menu_data_mgmt">إدارة البيانات</a>
+            <a href="#" id="menu-roles" onclick="showScreen('roles-screen')" data-i18n="menu_roles">الأدوار والصلاحيات</a>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        
+        <div id="dashboard-screen" class="screen">
+            <h1 data-i18n="menu_dashboard">لوحة التحكم العامة</h1>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4 data-i18n="stat_total_emp">إجمالي الموظفين</h4>
+                    <p id="stat-total-employees">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4 data-i18n="stat_total_departments">إجمالي الأقسام</h4>
+                    <p id="stat-total-departments">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4 data-i18n="stat_active_kpis">مؤشرات الأداء النشطة</h4>
+                    <p id="stat-active-kpis">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4 data-i18n="stat_avg_performance">متوسط الأداء العام</h4>
+                    <p id="stat-avg-performance">0%</p>
+                </div>
+            </div>
+            
+            <div class="chart-container" style="height: 350px;">
+                <h3 data-i18n="subtitle_dept_perf" style="margin-bottom: 10px;">أداء الأقسام (آخر 90 يوماً)</h3>
+                <canvas id="department-performance-chart"></canvas>
+            </div>
+            
+            <h3 data-i18n="subtitle_top_emp" style="margin-top: 30px;">أفضل 5 موظفين (آخر 30 يوماً)</h3>
+            <table id="top-employees-table" class="data-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th data-i18n="table_name">الاسم</th>
+                        <th data-i18n="table_dept">القسم</th>
+                        <th data-i18n="table_score">النتيجة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+        
+        <div id="personal-dashboard-screen" class="screen" style="display:none;">
+            <h1 data-i18n="menu_employee_review">نتيجة التقييم للموظف</h1>
+
+            <form>
+                <label for="dashboard-employee-select" data-i18n="table_emp_name">اختر الموظف:</label>
+                <select id="dashboard-employee-select" onchange="updateEmployeeDashboard()"></select>
+            </form>
+            
+            <div id="personal-dashboard-content" style="margin-top: 20px;">
+                <p data-i18n="msg_select_employee_dash" style="text-align: center; margin-top: 50px;">الرجاء اختيار موظف لعرض نتيجة تقييمه.</p>
+
+                <div id="employee-score-card" style="display:none;" class="stats-grid">
+                    <div class="stat-card">
+                        <h4 data-i18n="stat_current_score">متوسط الأداء الحالي</h4>
+                        <p id="current-score">0%</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4 data-i18n="stat_goal_status">حالة الهدف الزمني</h4>
+                        <p id="goal-status" style="font-size: 1.5em;"></p>
+                    </div>
+                </div>
+                
+                <div id="personal-kpi-chart-container" class="chart-container" style="display:none;">
+                    <h3 data-i18n="subtitle_daily_perf" style="margin-bottom: 10px;">تطور الأداء اليومي</h3>
+                    <canvas id="personal-kpi-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div id="record-screen" class="screen" style="display:none;">
+            <h1 data-i18n="menu_record">تسجيل الأداء</h1>
+
+            <form id="performance-record-form">
+                <label for="record-employee-id" data-i18n="table_emp_name">اسم الموظف</label>
+                <select id="record-employee-id" onchange="renderRecordKpis()"></select>
+
+                <label for="record-date" data-i18n="table_date">التاريخ</label>
+                <input type="date" id="record-date" value="" onchange="renderRecordKpis()" required>
+
+                <h3 style="flex-basis: 100%; margin-top: 20px;" data-i18n="menu_kpis">مؤشرات الأداء والقيم</h3>
+                
+                <p id="record-kpi-message" data-i18n="msg_select_employee_kpi" style="flex-basis: 100%; text-align: center; color: #7f8c8d;"></p>
+
+                <div id="record-kpis-container" style="display:none; flex-basis: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    </div>
+
+                <button type="button" onclick="savePerformanceRecord()" data-i18n="btn_save_record">حفظ السجل</button>
+            </form>
+        </div>
+        
+        <div id="goals-screen" class="screen" style="display:none;">
+            <h1 data-i18n="menu_goals">تحديد الأهداف الزمنية</h1>
+
+            <form id="goal-form">
+                <label for="goal-kpi-id" data-i18n="kpi_name">المؤشر المستهدف</label>
+                <select id="goal-kpi-id"></select>
+
+                <label for="goal-target" data-i18n="table_target_val">القيمة المستهدفة (%)</label>
+                <input type="number" id="goal-target" min="1" max="100" placeholder="1-100" required>
+
+                <label for="goal-end-date" data-i18n="table_end_date">تاريخ الانتهاء</label>
+                <input type="date" id="goal-end-date" required>
+
+                <button type="button" onclick="setLongTermGoal()" data-i18n="btn_set_goal">تحديد الهدف</button>
+            </form>
+
+            <h3 style="margin-top: 30px;" data-i18n="active_goals">الأهداف النشطة</h3>
+            <table id="goals-table" class="data-table">
+                <thead>
+                    <tr>
+                        <th data-i18n="kpi_name">المؤشر</th>
+                        <th data-i18n="table_target_val">القيمة المستهدفة</th>
+                        <th data-i18n="table_end_date">تاريخ الانتهاء</th>
+                        <th data-i18n="table_status">الحالة</th>
+                        <th data-i18n="table_actions">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+        
+        <div id="records-list-screen" class="screen" style="display:none;">
+            <h1 data-i18n="menu_records_list">سجلات الأداء</h1>
+
+            <form style="gap: 10px;">
+                <label for="records-dept-filter" data-i18n="table_dept">تصفية حسب القسم:</label>
+                <select id="records-dept-filter" onchange="updateRecordsEmployeeSelect(); renderPerformanceRecords()" style="flex-grow: 1;"></select>
+                
+                <label for="records-employee-select" data-i18n="table_emp_name">تصفية حسب الموظف:</label>
+                <select id="records-employee-select" onchange="renderPerformanceRecords()" style="flex-grow: 1;"></select>
+            </form>
+
+            <div id="records-table-container" style="display: none;">
+                <h3 style="margin-top: 30px;" data-i18n="daily_records">سجلات الأداء اليومية</h3>
+                <table id="records-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="table_date">التاريخ</th>
+                            <th data-i18n="table_kpis_count">عدد المؤشرات</th>
+                            <th data-i18n="table_weighted_score">النتيجة الموزونة لليوم</th>
+                            <th data-i18n="table_actions">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </div>
+            <p id="records-message" data-i18n="msg_select_employee_records" style="text-align: center; margin-top: 50px; color: #7f8c8d;"></p>
+        </div>
+
+        <div id="kpis-screen" class="screen" style="display:none;">
+            <h1 data-i18n="menu_kpis">إدارة المؤشرات (KPIs)</h1>
+
+            <form id="kpi-form">
+                <input type="hidden" id="kpi-id-to-edit" value="">
+                
+                <label for="kpi-name" data-i18n="kpi_name">اسم المؤشر</label>
+                <input type="text" id="kpi-name" required>
+
+                <label for="kpi-dept-id" data-i18n="table_dept">القسم المرتبط به</label>
+                <select id="kpi-dept-id"></select>
+
+                <label for="kpi-weight" data-i18n="kpi_weight">الوزن النسبي (%)</label>
+                <input type="number" id="kpi-weight" min="1" max="100" placeholder="1-100" required>
+                <span id="kpi-dept-weight-info" style="font-size: 0.9em; color: #3498db; flex-basis: 100%;"></span>
+                
+                <!-- شريط الوزن المتبقي للقسم -->
+                <div class="weight-bar" id="kpi-dept-weight-bar" style="flex-basis: 100%;">
+                    <div class="weight-bar-fill" id="kpi-dept-weight-bar-fill"></div>
+                </div>
+                <span id="kpi-weight-warning" style="display:none; color:#e74c3c; font-size:0.9em; flex-basis: 100%;"></span>
+
+                <label for="kpi-type" data-i18n="kpi_type">نوع المؤشر</label>
+                <select id="kpi-type" required>
+                    <option value="positive" data-i18n="kpi_positive">إيجابي (الأكثر أفضل)</option>
+                    <option value="negative" data-i18n="kpi_negative">سلبي (الأقل أفضل)</option>
+                </select>
+
+                <button type="button" id="save-kpi-button" onclick="saveKPI()" data-i18n="btn_add">إضافة</button>
+                <button type="button" id="cancel-kpi-edit" onclick="resetKpiForm()" style="display:none;" data-i18n="btn_cancel">إلغاء</button>
+            </form>
+
+            <h3 style="margin-top: 30px;" data-i18n="kpi_list">قائمة المؤشرات</h3>
+            <table id="kpis-table" class="data-table">
+                <thead>
+                    <tr>
+                        <th data-i18n="kpi_name">المؤشر</th>
+                        <th data-i18n="table_dept">القسم</th>
+                        <th data-i18n="kpi_weight">الوزن</th>
+                        <th data-i18n="kpi_type">النوع</th>
+                        <th data-i18n="table_actions">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+
+        <div id="employees-screen" class="screen" style="display:none;">
+            <h1 data-i18n="menu_employees">إدارة الموظفين</h1>
+
+            <form id="employee-form" style="display: block;">
+                <input type="hidden" id="employee-id-to-edit" value="">
+                
+                <label for="employee-name" data-i18n="table_name">الاسم</label>
+                <input type="text" id="employee-name" required>
+
+                <label for="employee-dept-id" data-i18n="table_dept">القسم</label>
+                <select id="employee-dept-id"></select>
+
+                <label for="employee-id-input" data-i18n="table_emp_id">الرقم التعريفي للموظف</label>
+                <input type="text" id="employee-id-input" required>
+
+                <button type="button" id="save-employee-button" onclick="saveEmployee()" data-i18n="btn_add">إضافة</button>
+                <button type="button" id="cancel-employee-edit" onclick="resetEmployeeForm()" style="display:none;" data-i18n="btn_cancel">إلغاء</button>
+            </form>
+
+            <h3 data-i18n="subtitle_employee_list" style="margin-top: 30px; display: inline-block;">قائمة الموظفين</h3>
+            
+            <div class="search-container" style="float: left; margin-top: 25px;">
+                <input type="text" id="employee-search-input" onkeyup="renderEmployees()" placeholder="ابحث بالاسم أو الرقم التعريفي..." style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+            </div>
+
+            <table id="employees-table" class="data-table" style="clear: both;">
+                <thead>
+                    <tr>
+                        <th data-i18n="table_name">الاسم</th>
+                        <th data-i18n="table_dept">القسم</th>
+                        <th data-i18n="table_emp_id">الرقم التعريفي</th> 
+                        <th data-i18n="table_actions">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+
+        <div id="departments-screen" class="screen" style="display:none;">
+            <h1 data-i18n="menu_departments">إدارة الأقسام</h1>
+
+            <form id="department-form">
+                <input type="hidden" id="dept-id-to-edit" value="">
+                <label for="dept-name" data-i18n="table_name">اسم القسم</label>
+                <input type="text" id="dept-name" required>
+
+                <button type="button" id="save-dept-button" onclick="saveDepartment()" data-i18n="btn_add">إضافة</button>
+                <button type="button" id="cancel-dept-edit" onclick="resetDeptForm()" style="display:none;" data-i18n="btn_cancel">إلغاء</button>
+            </form>
+
+            <h3 style="margin-top: 30px;" data-i18n="departments_list">قائمة الأقسام</h3>
+            <table id="departments-table" class="data-table">
+                <thead>
+                    <tr>
+                        <th data-i18n="table_name">الاسم</th>
+                        <th data-i18n="table_weight_remaining">السعة المتبقية</th>
+                        <th data-i18n="table_actions">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+
+        <div id="reports-screen" class="screen" style="display:none;">
+            <h1 data-i18n="menu_reports">التقارير والإحصائيات</h1>
+            
+            <h2 data-i18n="custom_reports">تقارير الأداء المخصصة</h2>
+            <form>
+                <label for="report-employee-select" data-i18n="table_emp_name">اختر الموظف</label>
+                <select id="report-employee-select"></select>
+                
+                <label for="report-start-date">تاريخ البداية</label>
+                <input type="date" id="report-start-date" required>
+                
+                <label for="report-end-date">تاريخ النهاية</label>
+                <input type="date" id="report-end-date" required>
+                
+                <button type="button" onclick="generateReport()" data-i18n="btn_generate_report">توليد التقرير</button>
+            </form>
+            
+            <div id="report-output" style="margin-top: 30px; display: none;">
+                <h3 id="report-title" data-i18n="report_title_emp">تقرير أداء الموظف</h3>
+                <p id="report-avg-score" style="font-weight: bold;"></p>
+                
+                <table id="daily-performance-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="table_date">التاريخ</th>
+                            <th data-i18n="table_weighted_score">النتيجة الموزونة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+                
+                <div style="margin-top: 15px;">
+                    <button type="button" onclick="exportReport('PDF')" data-i18n="btn_export_pdf">تصدير PDF</button>
+                    <button type="button" onclick="exportReport('Excel')" data-i18n="btn_export_excel">تصدير Excel</button>
+                    <button type="button" onclick="printReport()" data-i18n="btn_print_report" class="btn-secondary">طباعة التقرير (A4)</button>
+                </div>
+            </div>
+
+            <h2 style="margin-top: 40px;" data-i18n="subtitle_overall_report">التقرير الإجمالي للمنظمة</h2>
+            <button type="button" onclick="generateOverallReport()" data-i18n="btn_generate_overall">توليد التقرير الإجمالي</button>
+            <div id="overall-report-output" style="margin-top: 20px;">
+                </div>
+        </div>
+
+        <div id="data-management-screen" class="screen" style="display:none;">
+            <h1 data-i18n="menu_data_mgmt">إدارة البيانات</h1>
+            
+            <div class="data-mgmt-section">
+                <h3 data-i18n="data_export">تصدير البيانات</h3>
+                <p data-i18n="export_description">تصدير جميع بيانات النظام الحالية إلى ملف JSON كنسخة احتياطية.</p>
+                <button type="button" onclick="exportData()" data-i18n="btn_export_data">تصدير البيانات (JSON)</button>
+            </div>
+
+            <div class="data-mgmt-section">
+                <h3 data-i18n="data_import">استيراد البيانات</h3>
+                <p data-i18n="import_description">استيراد نسخة احتياطية من ملف JSON (سيتم استبدال البيانات الحالية).</p>
+                <input type="file" id="import-file" accept=".json" style="margin-bottom: 10px;">
+                <button type="button" onclick="importData()" data-i18n="btn_import_data">استيراد البيانات</button>
+            </div>
+
+            <div class="data-mgmt-section">
+                <h3 data-i18n="data_clear">مسح جميع البيانات</h3>
+                <p data-i18n="clear_warning" style="color: red; font-weight: bold;">تحذير: هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات الأقسام، والموظفين، والسجلات، والمؤشرات، والأهداف.</p>
+                <button type="button" class="btn-danger" onclick="clearAllData()" data-i18n="btn_clear_data">مسح الكل</button>
+            </div>
+        </div>
+
+        <div id="roles-screen" class="screen" style="display:none;">
+            <h1 data-i18n="roles_heading">الأدوار والصلاحيات</h1>
+            <form id="roles-form" style="gap: 10px;">
+                <label for="role-select" data-i18n="role_label">اختر الدور</label>
+                <select id="role-select" onchange="handleRoleSelectChange()">
+                    <option value="super_admin" data-i18n="role_super_admin">مدير عام</option>
+                    <option value="admin" data-i18n="role_admin">مشرف</option>
+                    <option value="manager" data-i18n="role_manager">مدير قسم</option>
+                    <option value="hr" data-i18n="role_hr">الموارد البشرية</option>
+                    <option value="data_entry" data-i18n="role_data_entry">مدخل بيانات</option>
+                    <option value="viewer" data-i18n="role_viewer">مشاهد</option>
+                </select>
+
+                <label for="role-dept-id" id="role-dept-label" data-i18n="role_dept_label">ربط القسم (للمدير)</label>
+                <select id="role-dept-id"></select>
+
+                <div id="role-perms-container" style="margin-top:10px;">
+                    <label style="font-weight:bold;">صلاحيات الدور</label>
+                    <div class="role-perms-grid" style="display:grid;grid-template-columns:repeat(2, minmax(200px, 1fr));gap:6px;margin-top:6px;">
+                        <label><input type="checkbox" id="perm-manage-departments" data-perm="manage_departments"> إدارة الأقسام</label>
+                        <label><input type="checkbox" id="perm-manage-employees" data-perm="manage_employees"> إدارة الموظفين</label>
+                        <label><input type="checkbox" id="perm-manage-kpis" data-perm="manage_kpis"> إدارة المؤشرات</label>
+                        <label><input type="checkbox" id="perm-manage-records" data-perm="manage_records"> إدارة السجلات</label>
+                        <label><input type="checkbox" id="perm-manage-goals" data-perm="manage_goals"> إدارة الأهداف</label>
+                        <label><input type="checkbox" id="perm-view-reports" data-perm="view_reports"> عرض التقارير</label>
+                        <label><input type="checkbox" id="perm-view-dashboard" data-perm="view_dashboard"> عرض لوحة التحكم</label>
+                        <label><input type="checkbox" id="perm-manage-data" data-perm="manage_data"> إدارة البيانات</label>
+                    </div>
+                    <p style="color:#7f8c8d;font-size:0.9em;margin-top:6px;">تخصيص الصلاحيات لهذا الدور سيتم حفظه محليًا.</p>
+                </div>
+
+                <button type="button" onclick="saveRoleSettings()" data-i18n="btn_save">حفظ</button>
+                <p style="color:#7f8c8d;" data-i18n="roles_note">يتم تطبيق الصلاحيات فورًا.</p>
+            </form>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // إضافة مفاتيح عربية مفقودة للاستخدام مع i18n
+        translations.ar = translations.ar || {};
+        translations.ar['lang_label'] = 'اللغة';
+        translations.ar['kpi_list'] = 'قائمة المؤشرات';
+        translations.ar['departments_list'] = 'قائمة الأقسام';
+        translations.ar['active_goals'] = 'الأهداف النشطة';
+        translations.ar['daily_records'] = 'سجلات الأداء اليومية';
+        translations.ar['custom_reports'] = 'تقارير الأداء المخصصة';
+        translations.ar['data_export'] = 'تصدير البيانات';
+        translations.ar['data_import'] = 'استيراد البيانات';
+        translations.ar['data_clear'] = 'مسح جميع البيانات';
+        translations.ar['export_description'] = 'تصدير جميع بيانات النظام الحالية إلى ملف JSON كنسخة احتياطية.';
+        translations.ar['import_description'] = 'استيراد نسخة احتياطية من ملف JSON (سيتم استبدال البيانات الحالية).';
+        translations.ar['clear_warning'] = 'تحذير: هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات الأقسام، والموظفين، والسجلات، والمؤشرات، والأهداف.';
+        translations.ar['placeholder_employee_search'] = 'ابحث بالاسم أو الرقم التعريفي...';
+
+        translations.ar['label_current_total'] = 'المجموع الحالي';
+        translations.ar['label_projected_total'] = 'المجموع المتوقع';
+
+        // إضافة ترجمة إنجليزية
+        translations.en = {
+            'app_title': 'Performance Management System (PMS)',
+            'menu_dashboard': 'Dashboard',
+            'menu_employee_review': 'Employee Review Result',
+            'menu_record': 'Record Performance',
+            'menu_kpis': 'KPIs Management',
+            'menu_employees': 'Employees Management',
+            'menu_departments': 'Departments Management',
+            'menu_goals': 'Set Time Goals',
+            'menu_records_list': 'Performance Records',
+            'menu_reports': 'Reports & Analytics',
+            'menu_data_mgmt': 'Data Management',
+
+            'btn_add': 'Add',
+            'btn_save': 'Save',
+            'btn_edit': 'Edit',
+            'btn_delete': 'Delete',
+            'btn_cancel': 'Cancel',
+            'btn_save_record': 'Save Record',
+            'btn_generate_report': 'Generate Report',
+            'btn_export_pdf': 'Export PDF',
+            'btn_export_excel': 'Export Excel',
+            'btn_export_data': 'Export Data (JSON)',
+            'btn_import_data': 'Import Data',
+            'btn_clear_data': 'Clear All',
+            'btn_set_goal': 'Set Goal',
+            'btn_generate_overall': 'Generate Overall Report',
+            'btn_print_report': 'Print Report (A4)',
+            'btn_search': 'Search',
+
+            'subtitle_main_stats': 'Main Statistics',
+            'subtitle_dept_perf': 'Department Performance (last 90 days)',
+            'subtitle_top_emp': 'Top 5 Employees (last 30 days)',
+            'subtitle_daily_perf': 'Daily Performance Trend',
+            'subtitle_overall_report': 'Organization Overall Performance Report',
+            'subtitle_employee_list': 'Employees List',
+
+            'table_name': 'Name',
+            'table_actions': 'Actions',
+            'table_id': 'ID',
+            'table_dept': 'Department',
+            'table_emp_name': 'Employee Name',
+            'table_emp_id': 'Employee ID',
+            'table_hire_date': 'Hire Date',
+            'table_weight': 'Weight (%)',
+            'table_type': 'Type',
+            'table_score': 'Score',
+            'table_date': 'Date',
+            'table_kpis_count': 'KPIs Count',
+            'table_target_val': 'Target Value',
+            'table_end_date': 'End Date',
+            'table_status': 'Status',
+            'table_weighted_score': 'Weighted Score',
+            'kpi_positive': 'Positive (higher is better)',
+            'kpi_negative': 'Negative (lower is better)',
+            'kpi_weight': 'Weight (%)',
+            'kpi_type': 'Type',
+            'kpi_name': 'KPI Name',
+            'kpi_placeholder_general': 'General KPI (for all departments)',
+            'kpi_value_placeholder': 'Performance value (1-100)',
+            'select_dept_placeholder': 'Select department',
+            'select_emp_placeholder': 'Select employee',
+            'select_kpi_placeholder': 'Select KPI',
+            'filter_all_dept': 'All departments',
+
+            'stat_total_emp': 'Total Employees',
+            'stat_total_departments': 'Total Departments',
+            'stat_active_kpis': 'Active KPIs',
+            'stat_avg_performance': 'Average Performance',
+            'stat_current_score': 'Current Average',
+            'stat_goal_status': 'Goal Status',
+            'stat_no_goals': 'No goal set',
+            'stat_goal_achieved': 'Goal achieved',
+            'stat_goal_behind': 'Behind goal',
+            'stat_avg_period': 'Average in period:',
+            'overall_avg': 'Overall Average',
+            'status_expired': 'Expired',
+            'status_active': 'Active',
+
+            'alert_enter_kpi_name_weight': 'Please enter KPI name and weight (1-100).',
+            'alert_kpi_added': 'KPI added successfully!',
+            'alert_kpi_updated': 'KPI updated successfully!',
+            'alert_kpi_weight_exceeds': 'Total KPI weights for department exceed 100%. Total:',
+            'msg_remaining_weight': 'Remaining weight available for this department',
+            'msg_select_employee_kpi': 'Please select an employee to view KPIs.',
+            'msg_no_kpis_for_emp': 'No KPIs defined for this employee.',
+            'alert_invalid_weight': 'Total KPI weights for this employee do not equal 100%. Current total:',
+            'alert_fill_all_goal_fields': 'Please fill all goal fields.',
+            'alert_goal_set': 'Goal set successfully.',
+            'alert_invalid_record_value': 'Performance values must be between 1 and 100.',
+            'alert_fill_all_record_fields': 'Please select employee, date, and enter values for all KPIs.',
+            'alert_record_saved': 'Performance record saved/updated successfully.',
+            'msg_select_employee_records': 'Please select an employee to view records.',
+            'msg_no_records_for_emp': 'No performance records for this employee.',
+            'msg_select_employee_dash': 'Please select an employee to view the review result.',
+            'alert_fill_all_report_fields': 'Please select employee and date period.',
+            'alert_start_date_after_end': 'Start date must be earlier than end date.',
+            'report_title_emp': 'Employee Performance Report',
+            'to': 'to',
+            'msg_no_records_in_period': 'No performance records in the selected period.',
+            'alert_no_data_to_export': 'No data to export in the report.',
+            'alert_select_file': 'Please select a JSON file to import.',
+            'alert_restore_confirm': 'Are you sure to restore data? Current data will be cleared.',
+            'alert_data_imported': 'Data imported successfully.',
+            'alert_invalid_json': 'Error: Invalid JSON format.',
+            'alert_clear_confirm': 'Are you sure to clear all app data? This cannot be undone.',
+            'alert_data_cleared': 'All data cleared successfully.',
+            'alert_delete_confirm': 'Are you sure to delete this item?',
+            'alert_dept_added': 'Department added successfully!',
+            'alert_dept_updated': 'Department updated successfully!',
+            'alert_emp_added': 'Employee added successfully!',
+            'alert_emp_updated': 'Employee updated successfully!',
+            'alert_duplicate_employee_id': 'This employee ID is already used. Please choose another.',
+
+            'lang_label': 'Language',
+            'kpi_list': 'KPIs List',
+            'departments_list': 'Departments List',
+            'active_goals': 'Active Goals',
+            'daily_records': 'Daily Performance Records',
+            'custom_reports': 'Custom Performance Reports',
+            'data_export': 'Export Data',
+            'data_import': 'Import Data',
+            'data_clear': 'Clear All Data',
+            'export_description': 'Export all current system data to a JSON file as backup.',
+            'import_description': 'Import a JSON backup (current data will be replaced).',
+            'clear_warning': 'Warning: This action cannot be undone. All departments, employees, records, KPIs, and goals will be deleted.',
+            'placeholder_employee_search': 'Search by name or employee ID...'
+        };
+
+        translations.ar['table_weight_remaining'] = 'السعة المتبقية';
+        translations.en['table_weight_remaining'] = 'Remaining Capacity';
+        translations.en['label_current_total'] = 'Current total';
+        translations.en['label_projected_total'] = 'Projected total';
+
+        // إضافات صفحة الأدوار والصلاحيات
+        translations.ar['menu_roles'] = 'الأدوار والصلاحيات';
+        translations.ar['roles_heading'] = 'الأدوار والصلاحيات';
+        translations.ar['role_label'] = 'اختر الدور';
+        translations.ar['role_dept_label'] = 'ربط القسم (للمدير)';
+        translations.ar['roles_note'] = 'يتم تطبيق الصلاحيات فورًا.';
+        translations.ar['roles_saved'] = 'تم حفظ الدور والصلاحيات.';
+        translations.ar['role_super_admin'] = 'مدير عام';
+        translations.ar['role_admin'] = 'مشرف';
+        translations.ar['role_manager'] = 'مدير قسم';
+        translations.ar['role_hr'] = 'الموارد البشرية';
+        translations.ar['role_data_entry'] = 'مدخل بيانات';
+        translations.ar['role_viewer'] = 'مشاهد';
+
+        translations.en['menu_roles'] = 'Roles & Permissions';
+        translations.en['roles_heading'] = 'Roles & Permissions';
+        translations.en['role_label'] = 'Select role';
+        translations.en['role_dept_label'] = 'Link department (for Manager)';
+        translations.en['roles_note'] = 'Permissions apply immediately.';
+        translations.en['roles_saved'] = 'Role and permissions saved.';
+        translations.en['role_super_admin'] = 'Super Admin';
+        translations.en['role_admin'] = 'Admin';
+        translations.en['role_manager'] = 'Manager';
+        translations.en['role_hr'] = 'HR';
+        translations.en['role_data_entry'] = 'Data Entry';
+        translations.en['role_viewer'] = 'Viewer';
+
+        function handleLanguageChange(lang) {
+            localStorage.setItem('language', lang);
+            setLanguage(lang);
+        }
+
+        // إعادة تعريف setLanguage لإضافة دعم RTL/LTR وتحديث العناصر الإضافية
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+            document.body.classList.remove('rtl','ltr');
+            document.body.classList.add(lang === 'ar' ? 'rtl' : 'ltr');
+
+            document.querySelectorAll('[data-i18n]').forEach(element => {
+                const key = element.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    element.textContent = translations[lang][key];
+                }
+            });
+
+            const empSearch = document.getElementById('employee-search-input');
+            if (empSearch) empSearch.placeholder = translate('placeholder_employee_search');
+
+            const select = document.getElementById('language-select');
+            if (select) select.value = lang;
+
+            if(window.updateDashboardStats) updateDashboardStats();
+            if(window.updateEmployeeDashboard) updateEmployeeDashboard();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('language') || currentLanguage || 'ar';
+            handleLanguageChange(savedLang);
+        });
+    </script>
+
+</body>
+</html>
