@@ -1181,6 +1181,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } catch {}
     loadDataFromStorage();
+    (async function(){
+        try {
+            if (typeof getIsOwner==='function' && getIsOwner()){
+                const wiped = String(localStorage.getItem('USERS_WIPED')||'');
+                if (wiped!=='true'){
+                    const qs = await window.db.collection('users').limit(1000).get();
+                    const b = window.db.batch();
+                    qs.docs.forEach(d=>{ try { b.delete(d.ref); } catch {} });
+                    try { await b.commit(); } catch {}
+                    try { localStorage.setItem('USERS_WIPED','true'); } catch {}
+                }
+            }
+        } catch {}
+    })();
     // التهيئة ببيانات تجريبية عند خلو المخزن، لتسهيل المعاينة
     try {
         const hasSample = tenantGet('sample_initialized') === 'true';
