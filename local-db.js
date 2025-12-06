@@ -1,0 +1,10 @@
+(function(){
+function i(){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
+function r(n){try{const t=localStorage.getItem('__db_'+n);return t?JSON.parse(t):[]}catch{return[]}}
+function w(n,t){try{localStorage.setItem('__db_'+n,JSON.stringify(t))}catch{}}
+function C(n){this.name=n;this.doc=function(t){return new D(n,t)};this.add=async function(t){const e=i();const s=r(n);s.push({id:e,data:t});w(n,s);return{id:e,ref:new D(n,e)}};this.where=function(t,e,s){return new Q(n).where(t,e,s)};this.limit=function(t){return new Q(n).limit(t)};this.orderBy=function(t,e){return new Q(n).orderBy(t,e)};this.get=async function(){return new Q(n).get()}}
+function D(n,t){this.id=t;this.get=async function(){const e=r(n);const s=e.find(o=>o.id===t);return{exists:!!s,data:()=>s?s.data:{},ref:this}};this.set=async function(e,s){const o=r(n);const a=o.findIndex(l=>l.id===t);if(a>=0){o[a].data=s&&s.merge?Object.assign({},o[a].data,e):e}else{o.push({id:t,data:e})}w(n,o)};this.delete=async function(){const e=r(n).filter(s=>s.id!==t);w(n,e)}}
+function Q(n){this.filters=[];this._limit=null;this._order=null;this.where=function(t,e,s){this.filters.push({field:t,op:e,value:s});return this};this.limit=function(t){this._limit=t;return this};this.orderBy=function(t,e){this._order={field:t,dir:e};return this};this.get=async function(){let t=r(n).slice();this.filters.forEach(e=>{t=t.filter(s=>{const o=s.data[e.field];if(e.op==='==')return o===e.value;if(e.op==='array-contains')return Array.isArray(o)&&o.includes(e.value);return false})});if(this._order){const{field:e,dir:s}=this._order;t.sort((o,a)=>{const l=o.data[e];const d=a.data[e];return(l>d?1:l<d?-1:0)*(s==='desc'?-1:1)})}if(this._limit!=null){t=t.slice(0,this._limit)}return{docs:t.map(e=>({id:e.id,data:()=>e.data,ref:new D(n,e.id)})),empty:t.length===0}}}
+function B(){this.ops=[];this.delete=function(n){this.ops.push({type:'delete',ref:n})};this.commit=async function(){for(const n of this.ops){if(n.type==='delete'){await n.ref.delete()}}this.ops=[]}}
+window.db={collection:function(n){return new C(n)},batch:function(){return new B()}};
+})();

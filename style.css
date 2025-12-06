@@ -17,7 +17,47 @@
     --highlight-red: #e74c3c;
     /* تحسين الظل ليصبح أكثر نعومة وعمقاً */
     --box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08); 
+    /* Bright theme additions (Candy Sunrise) */
+    --accent-pink: #ff7eb3;
+    --accent-coral: #ff758c;
+    --accent-sky: #60a5fa;
+    --glass-bg: rgba(255,255,255,0.16);
+    --lux-bg-soft: linear-gradient(135deg, #fff7f0, #f0f9ff 45%, #f7e9ff);
+    /* Luminous aurora palette — Candy Sunrise */
+    --aurora-1: rgba(255, 183, 197, 0.28); /* pink glow */
+    --aurora-2: rgba(145, 215, 255, 0.26); /* sky glow */
+    --aurora-3: rgba(194, 233, 171, 0.26); /* mint glow */
+    --bright-pink: rgba(255,126,179,0.70);
 }
+
+.theme-dark {
+    --primary-color: #00c2a8;
+    --secondary-color: #1f2937;
+    --text-color: #f3f4f6;
+    --light-bg: #0b1220;
+    --card-bg: #111827;
+    --border-color: #334155;
+}
+
+.theme-dark .main-content {
+    background-color: var(--light-bg);
+    color: var(--text-color);
+}
+body.theme-dark {
+    background-color: var(--light-bg);
+    color: var(--text-color);
+}
+.theme-dark .sidebar { background-color: var(--secondary-color); }
+.theme-dark .screen { background-color: var(--card-bg); }
+.theme-dark .data-table th { background-color: var(--secondary-color); }
+.theme-dark .data-table tbody tr:hover { background-color: #0f172a; }
+.theme-dark .panel-card { background: var(--card-bg); }
+.theme-dark .panel-header h3 { color: var(--text-color); }
+.theme-dark .stat-card p { color: var(--text-color); }
+.theme-dark .stat-card { border-left-color: var(--primary-color); }
+.theme-dark .dashboard-controls select { background:#0f172a; color:#f3f4f6; border-color: var(--border-color); }
+.theme-dark .lang-switch select { background:#0f172a; color:#f3f4f6; border-color: var(--border-color); }
+
 
 * {
     box-sizing: border-box;
@@ -26,7 +66,7 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: var(--light-bg);
     color: var(--text-color);
     line-height: 1.6;
@@ -100,10 +140,19 @@ body {
 }
 
 .screen h1 {
-    color: var(--secondary-color);
-    border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 10px;
-    margin-bottom: 20px;
+    display: inline-block;
+    color: #ffffff;
+    background: linear-gradient(135deg, #1a93c8, #21a4df);
+    border: none;
+    padding: 10px 16px;
+    border-radius: 12px;
+    margin: 0 0 16px 0;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.15);
+}
+.theme-dark .screen h1 {
+    background: linear-gradient(135deg, #1e3a8a, #2563eb);
 }
 
 /* ---------------------------------------------------- */
@@ -118,6 +167,13 @@ form {
     flex-wrap: wrap;
     gap: 15px;
 }
+
+.form-grid { display:grid; grid-template-columns: repeat(2,minmax(220px,1fr)); gap:12px; align-items:center }
+.form-grid label { grid-column: span 2 }
+.form-grid button { grid-column: span 2 }
+.input-hint { color:#e53935; font-size:0.85rem; margin:-6px 4px 0 }
+.form-grid #goal-level { grid-column: 1 }
+.form-grid #goal-employee-id { grid-column: 2 }
 
 label {
     flex-basis: 100%; /* اجعل الـ label يأخذ سطراً كاملاً */
@@ -162,11 +218,11 @@ button {
     margin-top: 10px;
 }
 
-button[type="button"], #save-employee-button, #save-dept-button, #save-kpi-button {
+button[type="button"]:not(.btn-secondary):not(.btn-danger):not(.btn-delete):not(.btn-edit), #save-employee-button, #save-dept-button, #save-kpi-button {
     background-color: var(--primary-color);
 }
 
-button[type="button"]:hover, #save-employee-button:hover, #save-dept-button:hover, #save-kpi-button:hover {
+button[type="button"]:not(.btn-secondary):not(.btn-danger):not(.btn-delete):not(.btn-edit):hover, #save-employee-button:hover, #save-dept-button:hover, #save-kpi-button:hover {
     background-color: #16a085;
 }
 
@@ -186,19 +242,42 @@ button[type="button"]:hover, #save-employee-button:hover, #save-dept-button:hove
     background-color: #2980b9;
 }
 
-.btn-delete, .btn-danger {
+.btn-danger {
     background-color: var(--highlight-red);
 }
-.btn-delete:hover, .btn-danger:hover {
+.btn-danger:hover {
     background-color: #c0392b;
 }
 
-.btn-secondary {
+/* جعل زر الحذف بنفس تنسيق زر التفاصيل (ثانوي) */
+.btn-delete {
     background-color: #95a5a6;
 }
-.btn-secondary:hover {
+.btn-delete:hover {
     background-color: #7f8c8d;
 }
+
+.btn-secondary {
+    background-color: #f4f6f8;
+    color: #2c3e50;
+    border: 1px solid #dfe3e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+.btn-secondary:hover {
+    background-color: #e9edf1;
+    border-color: #cfd5da;
+}
+
+.badge { display:inline-block; padding:4px 8px; border-radius:999px; font-size:0.8em; font-weight:700 }
+.badge.active { background:#e8f7f2; color:#128972 }
+.badge.expired { background:#fdecea; color:#c0392b }
+.progress { width:100%; height:10px; background:#eef2f7; border-radius:8px; overflow:hidden }
+.progress .bar { height:100%; background:#1abc9c; width:0; transition:width .3s ease }
+.progress .bar.warn { background:#f1c40f }
+.progress .bar.danger { background:#e74c3c }
+.goals-controls { display:flex; gap:8px; align-items:center; margin:10px 0 }
+.goals-controls .search-input { padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; min-width:220px }
+.goals-controls select { padding:6px 10px; border:1px solid var(--border-color); border-radius:6px }
 
 /* ---------------------------------------------------- */
 /* 5. الإحصائيات وبطاقات الأداء (Stats & Cards)        */
@@ -300,6 +379,26 @@ button[type="button"]:hover, #save-employee-button:hover, #save-dept-button:hove
     border-radius: 12px;
     box-shadow: var(--box-shadow);
     margin-top: 20px;
+    position: relative;
+}
+
+.chart-container h3 {
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: var(--secondary-color);
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+    align-items: stretch;
+}
+
+@media (max-width: 576px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ---------------------------------------------------- */
@@ -348,6 +447,8 @@ button[type="button"]:hover, #save-employee-button:hover, #save-dept-button:hove
     .sidebar nav hr {
         display: none;
     }
+    .panel-header { flex-direction: column; align-items: flex-start; }
+    .panel-body canvas { height: 240px; }
 }
 
 @media (max-width: 576px) {
@@ -371,6 +472,9 @@ button[type="button"]:hover, #save-employee-button:hover, #save-dept-button:hove
 /* مُبدّل اللغة */
 .lang-switch { margin: 10px 20px; display: flex; align-items: center; gap: 10px; }
 .lang-switch select { padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 6px; background: #fff; color: var(--text-color); }
+.account-theme label { margin-inline-start: 10px; margin-inline-end: 6px; color: var(--secondary-color); }
+.account-theme select { padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 6px; background: #fff; color: var(--text-color); }
+.theme-dark .account-theme select { background:#0f172a; color:#f3f4f6; border-color: var(--border-color); }
 
 /* شريط الوزن المتبقي للقسم */
 .weight-bar { position: relative; height: 14px; }
@@ -383,3 +487,775 @@ button[type="button"]:hover, #save-employee-button:hover, #save-dept-button:hove
 .weight-bar-fill.ok { background: var(--highlight-green); }
 .weight-bar-fill.warn { background: #f1c40f; }
 .weight-bar-fill.danger { background: #e74c3c; }
+
+
+/* ---------------------------------------------------- */
+/* 10. صفحة الدخول (Login)                              */
+/* ---------------------------------------------------- */
+/* نمط فاخر Scoped لشاشة الدخول */
+#login-screen.login-luxe {
+  background:
+    radial-gradient(900px circle at 85% -10%, rgba(212,175,55,0.30), transparent 42%),
+    radial-gradient(700px circle at 0% 70%, rgba(43,182,115,0.26), transparent 36%),
+    var(--lux-bg-soft);
+  animation: luxuryShift 14s ease-in-out infinite alternate;
+}
+#login-screen.login-luxe::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: linear-gradient(120deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+/* Aurora glow overlay for more luminous feel */
+#login-screen.login-luxe::after {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(640px circle at 22% 18%, var(--aurora-1), transparent 55%),
+    radial-gradient(820px circle at 78% 28%, var(--aurora-2), transparent 60%),
+    radial-gradient(720px circle at 30% 82%, var(--aurora-3), transparent 60%);
+  opacity: 0.72;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  transform: translate3d(0,0,0);
+  animation: auroraShift 18s ease-in-out infinite alternate;
+}
+@keyframes auroraShift {
+  0% { transform: translate3d(-8px, 6px, 0); opacity: 0.55; }
+  50% { transform: translate3d(8px, -6px, 0); opacity: 0.70; }
+  100% { transform: translate3d(-6px, 4px, 0); opacity: 0.60; }
+}
+#login-screen.login-luxe .login-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,126,179,0.35);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.14), 0 0 0 4px rgba(255,126,179,0.10);
+  position: relative;
+  transition: transform 220ms ease, box-shadow 220ms ease;
+  overflow: hidden; /* يسمح بوميض داخلي أنيق */
+}
+#login-screen.login-luxe .login-card::after {
+  content: '';
+  position: absolute;
+  left: -40%; top: 0; bottom: 0;
+  width: 40%;
+  background: linear-gradient(120deg, rgba(255,255,255,0.50), rgba(255,255,255,0.10));
+  transform: skewX(-12deg);
+  opacity: 0.0;
+  pointer-events: none;
+  animation: sheenSweep 7.5s ease-in-out infinite;
+}
+@keyframes sheenSweep {
+  0%   { left: -40%; opacity: 0.0; }
+  15%  { left: -40%; opacity: 0.12; }
+  50%  { left: 60%; opacity: 0.18; }
+  75%  { left: 60%; opacity: 0.08; }
+  100% { left: -40%; opacity: 0.0; }
+}
+#login-screen.login-luxe .login-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(0,0,0,0.16), 0 0 0 4px rgba(212,175,55,0.10);
+}
+#login-screen.login-luxe .login-card::before {
+  content: '';
+  position: absolute; top: 0; right: 0; left: 0; height: 4px;
+  background: linear-gradient(90deg, rgba(212,175,55,0.1), rgba(212,175,55,0.7), rgba(212,175,55,0.1));
+  border-top-left-radius: 16px; border-top-right-radius: 16px;
+}
+#login-screen.login-luxe .login-title {
+  background: linear-gradient(90deg, var(--accent-gold-darker), var(--accent-gold), var(--accent-gold-darker));
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  background-size: 200% 100%;
+  animation: titleShimmer 4s ease-in-out infinite;
+}
+@keyframes titleShimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+#login-screen.login-luxe .login-subtitle { text-align: center; color: #6b7a8b; }
+#login-screen.login-luxe .brand-icon { filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25)); }
+#login-screen.login-luxe .login-action { border: 1px solid rgba(212,175,55,0.35); box-shadow: 0 2px 8px rgba(212,175,55,0.15); transition: transform 160ms ease, box-shadow 160ms ease; }
+#login-screen.login-luxe #btn-login { background: linear-gradient(135deg, var(--primary-color), #16a085); }
+#login-screen.login-luxe #btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(26,188,156,0.35), 0 0 0 3px rgba(212,175,55,0.12) inset; }
+#login-screen.login-luxe #btn-register { background: transparent; color: var(--secondary-color); border: 1px solid rgba(212,175,55,0.45); }
+#login-screen.login-luxe #btn-register:hover { background: rgba(212,175,55,0.10); }
+#login-screen.login-luxe .login-input:focus { border-color: var(--primary-color); box-shadow: 0 0 8px rgba(26,188,156,0.35); }
+@keyframes luxuryShift {
+  0% { background-position: 0% 0%, 0% 0%; }
+  100% { background-position: 100% 50%, 100% 100%; }
+}
+.login-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(212,175,55,0.35);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.10), 0 0 0 4px rgba(212,175,55,0.06);
+  position: relative;
+}
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, rgba(212,175,55,0.1), rgba(212,175,55,0.7), rgba(212,175,55,0.1));
+  border-top-left-radius: 16px; border-top-right-radius: 16px;
+}
+/* مرحلة: عنوان أبيض مع حد خارجي وتظليل خفيف */
+.login-title {
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  color: #ffffff;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.15);
+  letter-spacing: 0.2px;
+}
+@supports (-webkit-text-stroke: 0.9px rgba(0,0,0,0.35)) {
+  .login-title { -webkit-text-stroke: 0.9px rgba(0,0,0,0.35); }
+}
+/* إن أردت بياضًا أنقى قليلًا يمكن تعديل اللون لاحقًا إلى #fefefe */
+.login-title {
+  background: linear-gradient(90deg, #b28a2a, var(--accent-gold), #b28a2a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: 0.4px;
+  font-weight: 800;
+  font-size: 2.2em;
+  text-align: center;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+.login-subtitle {
+  text-align: center;
+  color: #6b7a8b;
+  margin-top: 6px;
+  margin-bottom: 12px;
+  font-size: 0.95em;
+}
+.login-action {
+  border: 1px solid rgba(212,175,55,0.35);
+  box-shadow: 0 2px 8px rgba(212,175,55,0.15);
+}
+#btn-login {
+  background: linear-gradient(135deg, var(--primary-color), #16a085);
+}
+#btn-login:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 4px 14px rgba(26,188,156,0.35), 0 0 0 3px rgba(212,175,55,0.12) inset;
+}
+#btn-register {
+  background: transparent;
+  color: var(--secondary-color);
+  border: 1px solid rgba(212,175,55,0.45);
+}
+#btn-register:hover {
+  background: rgba(212,175,55,0.10);
+}
+.brand-icon { filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25)); }
+
+#btn-login {
+    background: linear-gradient(135deg, var(--primary-color), #16a085);
+}
+#btn-login:hover {
+    filter: brightness(1.05);
+    box-shadow: 0 4px 14px rgba(26,188,156,0.35), 0 0 0 3px rgba(212,175,55,0.12) inset;
+}
+
+#btn-register {
+    background: transparent;
+    color: var(--secondary-color);
+    border: 1px solid rgba(212,175,55,0.45);
+}
+#btn-register:hover {
+    background: rgba(212,175,55,0.10);
+}
+.login-designer {
+    text-align: center;
+    font-size: 0.85em;
+    color: rgba(212, 175, 55, 0.85); /* ذهب رقيق */
+    margin-top: 4px;
+    margin-bottom: 8px;
+    letter-spacing: 0.2px;
+}
+
+/* إبراز خطأ حقول الإدخال */
+.input-error {
+  border-color: #e53935 !important;
+  box-shadow: 0 0 0 2px rgba(229,57,53,0.15);
+}
+
+/* إبراز نتائج البحث في الجداول */
+mark.search-highlight {
+  background-color: #fff59d;
+  color: inherit;
+  padding: 0 2px;
+}
+
+.login-action {
+    border: 1px solid rgba(212,175,55,0.35);
+    box-shadow: 0 2px 8px rgba(212,175,55,0.15);
+}
+
+#btn-login {
+    background: linear-gradient(135deg, var(--primary-color), #16a085);
+}
+#btn-login:hover {
+    filter: brightness(1.05);
+    box-shadow: 0 4px 14px rgba(26,188,156,0.35), 0 0 0 3px rgba(212,175,55,0.12) inset;
+}
+
+#btn-register {
+    background: transparent;
+    color: var(--secondary-color);
+    border: 1px solid rgba(212,175,55,0.45);
+}
+#btn-register:hover {
+    background: rgba(212,175,55,0.10);
+}
+.login-designer {
+    text-align: center;
+    font-size: 0.85em;
+    color: rgba(212, 175, 55, 0.85); /* ذهب رقيق */
+    margin-top: 4px;
+    margin-bottom: 8px;
+    letter-spacing: 0.2px;
+}
+/* ===== نمط دخول بسيط شبيه بواجهة مُدد ===== */
+#login-screen.login-mudad {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #111c2f 0%, #111c2f 48%, #f5f6f8 48%, #f5f6f8 100%);
+}
+#login-screen.login-mudad::before,
+#login-screen.login-mudad::after { content: none; }
+
+/* تخطيط عمودين: لوحة تعريفية يسارًا ونموذج الدخول يمينًا */
+#login-screen.login-mudad .login-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
+  align-items: start;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+#login-screen.login-mudad .program-panel {
+  color: #eaf2f9;
+  background: radial-gradient(1200px 600px at 0% 0%, rgba(33,164,223,0.18) 0%, rgba(33,164,223,0.08) 45%, transparent 70%),
+              linear-gradient(135deg, rgba(21,32,54,0.95), rgba(21,32,54,0.85));
+  border: 1px solid rgba(226,232,240,0.18);
+  border-radius: 18px;
+  box-shadow: 0 18px 38px rgba(0,0,0,0.32);
+  padding: 22px 22px;
+}
+#login-screen.login-mudad .program-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-align: left;
+  margin: 0 0 8px 0;
+}
+#login-screen.login-mudad .program-lead {
+  color: #b7d1df;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+#login-screen.login-mudad .program-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+#login-screen.login-mudad .program-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(226,232,240,0.18);
+  border-radius: 14px;
+  padding: 14px 12px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.22);
+}
+#login-screen.login-mudad .program-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.05rem;
+  color: #eaf2f9;
+}
+#login-screen.login-mudad .program-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+#login-screen.login-mudad .program-card li {
+  color: #cee4ef;
+  margin: 6px 0;
+}
+
+/* بطاقة بيضاء بظل خفيف وحد بسيط */
+#login-screen.login-mudad .login-card {
+  max-width: 640px;
+  margin: 24px 0;
+  padding: 22px 20px 86px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e6e8ee;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+
+#login-screen.login-mudad .auth-message {
+  position: absolute;
+  bottom: 14px;
+  left: 20px;
+  right: 20px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(33,164,223,0.08), rgba(33,164,223,0.16));
+  border: 1px solid #e6e8ee;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+  text-align: right;
+  font-weight: 600;
+  color: inherit; /* يحافظ على لون النص من السكربت */
+}
+#login-screen.login-mudad .auth-message:empty { display: none; }
+
+@media (max-width: 980px) {
+  #login-screen.login-mudad .login-layout { grid-template-columns: 1fr; }
+  #login-screen.login-mudad .program-panel { margin-bottom: 12px; }
+}
+
+/* عنوان يميني بخط ثقيل وخط عمودي أزرق */
+#login-screen.login-mudad .login-title {
+  color: #ffffff;
+  text-align: right;
+  font-weight: 800;
+  font-size: 1.9rem;
+  letter-spacing: 0.2px;
+  text-shadow: none;
+  -webkit-text-stroke: 0;
+  position: relative;
+  padding-right: 12px;
+}
+#login-screen.login-mudad .login-title::after {
+  content: "";
+  position: absolute;
+  right: 0; top: 50%; transform: translateY(-50%);
+  width: 4px; height: 72%; border-radius: 2px;
+  background: #21a4df; /* لهجة زرقاء مشابهة */
+}
+
+#login-screen.login-mudad .login-subtitle {
+  text-align: right;
+  color: #a9c6d8;
+  font-weight: 600;
+}
+#login-screen.login-mudad .login-subtitle a {
+  color: #5b2e9b;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+/* الحقول بأسلوب بسيط وواضح */
+#login-screen.login-mudad .login-fields { gap: 12px; margin-top: 12px; }
+#login-screen.login-mudad .login-input {
+  border-radius: 12px;
+  border: 1px solid #e1e6ee;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 1.06rem;
+  padding: 12px 64px 12px 44px;
+}
+#login-screen.login-mudad .login-input::placeholder { color: #6b7280; opacity: 0.9; }
+#login-screen.login-mudad .login-input:focus,
+#login-screen.login-mudad .login-input:focus-visible {
+  outline: none;
+  border-color: #21a4df;
+  box-shadow: 0 0 0 3px rgba(33,164,223,0.20);
+  background: #ffffff;
+}
+
+/* أزرار بلون أزرق هادئ */
+#login-screen.login-mudad .login-action { border-radius: 12px; }
+#login-screen.login-mudad #btn-login {
+  background: #21a4df;
+  color: #ffffff;
+  border: 1px solid #1a93c8;
+  box-shadow: 0 6px 16px rgba(26,147,200,0.22);
+}
+#login-screen.login-mudad #btn-login:hover { filter: brightness(1.06); }
+#login-screen.login-mudad #btn-register {
+  background: transparent;
+  color: #1a93c8;
+  border: 1px solid #1a93c8;
+}
+#login-screen.login-mudad #btn-register:hover { background: rgba(33,164,223,0.08); }
+
+/* خيارات دخول على نمط مُدد (Option Cards) */
+#login-screen.login-mudad .login-options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+#login-screen.login-mudad .option-card {
+  display: grid;
+  grid-template-columns: 40px 1fr 28px;
+  align-items: center;
+  text-align: right;
+  border-radius: 16px;
+  border: 1px solid #e6e8ee;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  padding: 16px 14px;
+}
+#login-screen.login-mudad .option-card:hover {
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+#login-screen.login-mudad .chevron-circle {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #eef2f7;
+  color: #64748b;
+  font-size: 22px;
+  line-height: 1;
+}
+#login-screen.login-mudad .option-title {
+  color: #374151;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+#login-screen.login-mudad .option-icon {
+  justify-self: end;
+  opacity: 0.9;
+}
+
+
+/* إزالة الوميض والحركات لأسلوب هادئ */
+@media (prefers-reduced-motion: reduce) {
+  #login-screen.login-mudad .login-card,
+  #login-screen.login-mudad .login-title { animation: none; }
+}
+.login-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(212,175,55,0.35);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.10), 0 0 0 4px rgba(212,175,55,0.06);
+  position: relative;
+}
+.login-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(248, 215, 124, 0.45), rgba(201, 154, 58, 0.15));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+#login-screen.login-luxe .login-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: var(--deep-shadow);
+  border-color: rgba(248,215,124,0.28);
+}
+
+/* Title: crisp white with golden outline */
+#login-screen.login-luxe .login-title {
+  color: #ffffff;
+  text-align: center;
+  -webkit-text-stroke: 1.1px rgba(255,126,179,0.95);
+  letter-spacing: 0.8px;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,0.28),
+    0 0 10px var(--bright-pink),
+    0 0 18px rgba(255,126,179,0.35);
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.12));
+  animation: titleGlint 6s ease-in-out infinite;
+}
+@keyframes titleGlint {
+  0% { text-shadow: 0 1px 2px rgba(0,0,0,0.28), 0 0 8px var(--bright-pink), 0 0 16px rgba(255,126,179,0.30); }
+  50% { text-shadow: 0 1px 2px rgba(0,0,0,0.28), 0 0 12px var(--bright-pink), 0 0 22px rgba(255,126,179,0.42); }
+  100% { text-shadow: 0 1px 2px rgba(0,0,0,0.28), 0 0 9px var(--bright-pink), 0 0 18px rgba(255,126,179,0.34); }
+}
+
+@keyframes luxeShimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Subtitle refinement */
+#login-screen.login-luxe .login-subtitle {
+  color: #f8f9fa;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  -webkit-text-stroke: 0.2px rgba(0,0,0,0.08);
+  text-shadow: 0 2px 6px rgba(0,0,0,0.25), 0 0 2px rgba(255,255,255,0.6);
+}
+
+/* Brand icon halo and centering at top */
+#login-screen.login-luxe .login-brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 10px; /* أعلى البطاقة وبمحاذاة الوسط */
+  filter: drop-shadow(0 6px 8px rgba(0,0,0,0.28));
+}
+#login-screen.login-luxe .brand-icon { display: block; }
+
+/* Inputs: calm glow and precision */
+#login-screen.login-luxe .login-input {
+  border-radius: 12px;
+  border: 1.6px solid rgba(255,126,179,0.70);
+  background: rgba(255,255,255,0.34);
+  background-image: linear-gradient(to bottom, rgba(255,255,255,0.48), rgba(255,255,255,0.20));
+  color: #000000;
+  font-size: 1.08em;
+  padding: 12px 16px 12px 44px;
+  backdrop-filter: blur(4px);
+  transition: box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+#login-screen.login-luxe .login-input::placeholder {
+  color: #000000 !important;
+  opacity: 0.95;
+}
+#login-screen.login-luxe .login-input:focus,
+#login-screen.login-luxe .login-input:focus-visible {
+  outline: none;
+  border-color: rgba(248,215,124,0.85);
+  box-shadow: 0 0 0 3px rgba(248,215,124,0.25), 0 10px 24px rgba(18,194,135,0.35);
+  background: rgba(255,255,255,0.26);
+}
+
+/* Input icons for email and password */
+#login-screen.login-luxe .input-wrap { position: relative; }
+#login-screen.login-luxe .input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px; height: 20px;
+  background-size: 20px 20px;
+  background-repeat: no-repeat;
+  opacity: 0.9;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+#login-screen.login-luxe .input-icon.email {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232c3e50'%3E%3Cpath d='M2 5h20v14H2z'/%3E%3Cpath d='M2 5l10 7 10-7'/%3E%3C/svg%3E");
+}
+#login-screen.login-luxe .input-icon.lock {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232c3e50'%3E%3Cpath d='M17 10V9a5 5 0 10-10 0v1H5v11h14V10h-2zm-8 0V9a3 3 0 116 0v1H9zm3 8a2 2 0 100-4 2 2 0 000 4z'/%3E%3C/svg%3E");
+}
+
+/* Buttons: tactile, elegant */
+#login-screen.login-luxe .login-action {
+  border-radius: 12px;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+#login-screen.login-luxe .login-action:active {
+  transform: translateY(1px) scale(0.995);
+}
+
+#login-screen.login-luxe #btn-login {
+  background-image: linear-gradient(135deg, var(--accent-pink), var(--accent-coral));
+  border-color: rgba(255,126,179,0.55);
+  box-shadow: 0 10px 22px rgba(255,126,179,0.40), 0 0 0 2px rgba(255,126,179,0.18) inset;
+  position: relative;
+  animation: pulseGlow 2.8s ease-in-out infinite;
+}
+
+#login-screen.login-luxe #btn-login::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,126,179,0.45), rgba(255,117,140,0.18));
+  opacity: 0;
+  transition: opacity 220ms ease;
+  pointer-events: none;
+}
+
+#login-screen.login-luxe #btn-login:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(255,126,179,0.50), 0 0 0 2px rgba(255,126,179,0.24) inset;
+}
+
+#login-screen.login-luxe #btn-login:hover::after { opacity: 1; }
+
+#login-screen.login-luxe #btn-register {
+  border-color: rgba(255,126,179,0.40);
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 10px 22px rgba(255,126,179,0.40), 0 0 0 2px rgba(255,126,179,0.16) inset; }
+  50% { box-shadow: 0 12px 26px rgba(255,126,179,0.55), 0 0 0 2px rgba(255,126,179,0.24) inset; }
+  100% { box-shadow: 0 10px 22px rgba(255,126,179,0.40), 0 0 0 2px rgba(255,126,179,0.16) inset; }
+}
+
+/* Motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  #login-screen.login-luxe::before,
+  #login-screen.login-luxe::after,
+  #login-screen.login-luxe .login-title,
+  #login-screen.login-luxe .login-card::after { animation: none; }
+}
+
+/* Fallbacks if backdrop-filter unsupported */
+@supports not ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
+  #login-screen.login-luxe .login-card {
+    background: rgba(255,255,255,0.10);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.28);
+  }
+}
+/* تحسين وضوح لون العنوان الفرعي والـplaceholder ضمن النمط الفاخر */
+#login-screen.login-luxe .login-subtitle {
+  color: #e9c46a; /* ذهبي دافئ واضح */
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  -webkit-text-stroke: 0.6px rgba(0,0,0,0.06);
+  text-shadow: 0 1px 1px rgba(0,0,0,0.18);
+  font-size: 1.06em;
+}
+
+#login-screen.login-luxe .login-input::placeholder {
+  color: #000000 !important; /* أسود لظهور أوضح حسب الطلب */
+}
+.login-input::placeholder {
+  color: rgba(255,255,255,0.66);
+}
+
+#login-screen.login-luxe .login-input:focus,
+#login-screen.login-luxe .login-input:focus-visible {
+  outline: none;
+  border-color: rgba(255,126,179,0.80);
+  box-shadow: 0 0 0 3px rgba(255,126,179,0.32), 0 10px 24px rgba(255,126,179,0.28), inset 0 1px 8px rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.28);
+}
+
+/* Buttons: tactile, elegant */
+#login-screen.login-luxe .login-action {
+  border-radius: 12px;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+#login-screen.login-luxe .login-action:active {
+  transform: translateY(1px) scale(0.995);
+}
+
+#login-screen.login-luxe #btn-login {
+  background-image: linear-gradient(135deg, #2bb673, #1f8a56);
+  border-color: rgba(248,215,124,0.45);
+  box-shadow: 0 8px 16px rgba(43,182,115,0.35);
+  position: relative;
+}
+
+#login-screen.login-luxe #btn-login::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(248,215,124,0.35), rgba(201,154,58,0.1));
+  opacity: 0;
+  transition: opacity 220ms ease;
+  pointer-events: none;
+}
+
+#login-screen.login-luxe #btn-login:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(43,182,115,0.45);
+}
+
+#login-screen.login-luxe #btn-login:hover::after { opacity: 1; }
+
+#login-screen.login-luxe #btn-register {
+  border-color: rgba(248,215,124,0.35);
+}
+
+/* Motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  #login-screen.login-luxe::before,
+  #login-screen.login-luxe .login-title { animation: none; }
+}
+
+/* Fallbacks if backdrop-filter unsupported */
+@supports not ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
+  #login-screen.login-luxe .login-card {
+    background: rgba(255,255,255,0.10);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.28);
+  }
+}
+#login-screen.login-mudad .input-wrap { position: relative; }
+#login-screen.login-mudad .input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px; height: 20px;
+  background-size: 20px 20px;
+  background-repeat: no-repeat;
+  opacity: 0.9;
+}
+#login-screen.login-mudad .password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #eef2f7;
+  color: #2c3e50;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+#login-screen.login-mudad .remember-wrap { margin-top: 4px; color: #374151; font-weight: 600; }
+#login-screen.login-mudad .remember-wrap input { vertical-align: middle; margin-left: 6px; }
+#login-screen.login-mudad .input-hint { color: #e53935; font-size: 0.85rem; margin: -6px 4px 6px; }
+.btn-progress { opacity: 0.75; cursor: default; }
+/* بطاقات لوحة التحكم وتخطيط أفقي */
+.dashboard-layout { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; }
+.dashboard-col .panel-card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--box-shadow); padding: 16px; }
+.panel-header { display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-bottom: 8px; }
+.panel-header h3 { margin: 0; color: var(--secondary-color); }
+.panel-body canvas { width: 100%; height: 320px; }
+.dashboard-col.right select#overall-trend-period { padding:6px 10px; border-radius:6px; border:1px solid var(--border-color); }
+@media (max-width: 992px) { .dashboard-layout { grid-template-columns: 1fr; } }
+/* شريط تحكم اللوحة */
+.dashboard-controls { display:flex; align-items:center; justify-content:space-between; margin-bottom: 12px; }
+.dashboard-controls label { margin-left: 8px; }
+.dashboard-controls select { padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; }
+.dashboard-controls .search-input { padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; min-width:220px; }
+.theme-dark .dashboard-controls .search-input { background:#0f172a; color:#f3f4f6; border-color: var(--border-color); }
+.delta-badge { display:block; margin-top:4px; font-size:0.85em; color:#7f8c8d; }
+.delta-badge.up { color:#2ecc71; }
+.delta-badge.down { color:#e74c3c; }
+.critical-list { list-style:none; padding:0; margin:0; }
+.critical-list li { display:flex; align-items:center; justify-content:space-between; padding:8px 6px; border-bottom:1px solid var(--border-color); }
+.critical-list .status { font-weight:700; }
+.panel-body.loading { position: relative; min-height: 200px; }
+.panel-body.loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.06);
+    display: block;
+}
+.panel-body.loading::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 28px; height: 28px;
+    border: 3px solid #cbd5e1;
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }

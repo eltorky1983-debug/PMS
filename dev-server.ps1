@@ -1,12 +1,12 @@
 param(
     [int]$Port = 5500,
-    [string]$Host = 'localhost'
+    [string]$BindHost = 'localhost'
 )
 
 $ErrorActionPreference = 'Stop'
 
 $root = (Get-Location).Path
-$prefix = if ($Host -eq '*' -or $Host -eq '+') { "http://+:$Port/" } else { "http://$Host:$Port/" }
+$prefix = if ($BindHost -eq '*' -or $BindHost -eq '+') { "http://+:$Port/" } else { "http://${BindHost}:$Port/" }
 
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add($prefix)

@@ -5,20 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-i18n="app_title">نظام إدارة الأداء (PMS)</title>
     
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20251205">
+    <style>
+      #reports-card-grid .report-card { background: transparent; border: 1px solid #e7eaee; border-top: 6px solid #2563eb; color: #0f172a; }
+      #reports-card-grid .rc-title { color: #0f172a; }
+      #reports-card-grid .rc-desc { color: #64748b; }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.21/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.21/jspdf.plugin.autotable.min.js" defer></script>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+    <!-- Firebase compat SDKs -->
+    <script src="local-db.js" defer></script>
 
     <script>
         const translations = {
             'ar': {
                 // العناوين والأزرار الرئيسية
-                'app_title': 'نظام إدارة الأداء (PMS)',
+                'app_title': 'نظام إدارة الأداء PMS',
                 'menu_dashboard': 'لوحة التحكم العامة',
                 'menu_employee_review': 'نتيجة التقييم للموظف', // تم التغيير هنا
                 'menu_record': 'تسجيل الأداء',
@@ -47,10 +57,23 @@
                 'btn_generate_overall': 'توليد التقرير الإجمالي',
                 'btn_print_report': 'طباعة التقرير (A4)', // جديد
                 'btn_search': 'بحث', // جديد
+                'btn_export_csv': 'تصدير CSV',
+                'filter_kpi': 'تصفية حسب المؤشر',
+                'records_from_date': 'من تاريخ',
+                'records_to_date': 'إلى تاريخ',
+                'placeholder_search_records': 'ابحث بالتاريخ أو القيمة...',
+                'daily_records': 'سجلات الأداء اليومية',
+                'details': 'تفاصيل',
+                'no_records_after_filter': 'لا توجد سجلات مطابقة للمرشّحات الحالية.',
                 
                 // عناوين الأقسام
                 'subtitle_main_stats': 'الإحصائيات الرئيسية',
                 'subtitle_dept_perf': 'أداء الأقسام (آخر 90 يوماً)',
+                'subtitle_overall_trend': 'تطور الأداء العام (آخر 60 يوماً)',
+                'subtitle_overall_trend_base': 'تطور الأداء العام',
+                'period_30_days': 'آخر 30 يوماً',
+                'period_60_days': 'آخر 60 يوماً',
+                'period_90_days': 'آخر 90 يوماً',
                 'subtitle_top_emp': 'أفضل 5 موظفين (آخر 30 يوماً)',
                 'subtitle_daily_perf': 'تطور الأداء اليومي',
                 'subtitle_overall_report': 'التقرير الإجمالي لأداء المنظمة',
@@ -134,7 +157,8 @@
                 'alert_dept_updated': 'تم تحديث القسم بنجاح!',
                 'alert_emp_added': 'تمت إضافة الموظف بنجاح!',
                 'alert_emp_updated': 'تم تحديث بيانات الموظف بنجاح!',
-                'alert_duplicate_employee_id': 'هذا الرقم التعريفي للموظف مستخدم بالفعل. الرجاء اختيار رقم آخر.'
+                'alert_duplicate_employee_id': 'هذا الرقم التعريفي للموظف مستخدم بالفعل. الرجاء اختيار رقم آخر.',
+                'alert_duplicate_department_name': 'اسم القسم مستخدم بالفعل. الرجاء اختيار اسم آخر.'
             }
         };
 
@@ -152,7 +176,10 @@
                     element.textContent = translations[lang][key];
                 }
             });
-            // تحديث محتوى بعض العناصر المعتمدة على الترجمة
+            const inlineSelect = document.getElementById('language-toggle-inline');
+            if (inlineSelect) inlineSelect.value = lang;
+            const langBadge = document.getElementById('language-badge');
+            if (langBadge) { langBadge.classList.remove('ar','en'); langBadge.classList.add(lang === 'ar' ? 'ar' : 'en'); langBadge.textContent = lang === 'ar' ? 'AR' : 'EN'; }
             if(window.updateDashboardStats) updateDashboardStats();
             if(window.updateEmployeeDashboard) updateEmployeeDashboard();
         }
@@ -172,8 +199,8 @@
                 window.updateRecordsFilters();
                 window.renderPerformanceRecords();
             }
-            if (screenId === 'reports-screen') window.updateReportTargetSelect();
-            if (screenId === 'goals-screen') window.updateGoalKpiSelect();
+            if (screenId === 'reports-screen') { if (window.initReportsControls) window.initReportsControls(); window.updateReportTargetSelect(); }
+            if (screenId === 'goals-screen') { window.updateGoalKpiSelect(); window.updateGoalEmployeeSelect(); window.updateGoalLevelVisibility(); window.renderGoals(); }
             if (screenId === 'record-screen') {
                 window.updateRecordEmployeeSelect();
                 const container = document.getElementById('record-kpis-container');
@@ -186,9 +213,15 @@
                 }
             }
             if (screenId === 'departments-screen') window.renderDepartments();
-            if (screenId === 'employees-screen') window.renderEmployees(); // وظيفة renderEmployees ستستدعي دالة التصفية الجديدة
+            if (screenId === 'employees-screen') {
+                if (window.resetEmployeeForm) window.resetEmployeeForm();
+                window.renderEmployees(); // وظيفة renderEmployees ستستدعي دالة التصفية الجديدة
+            }
             if (screenId === 'kpis-screen') window.renderKPIs();
             if (screenId === 'roles-screen' && window.initRolesPage) window.initRolesPage();
+            if (screenId === 'roles-admin-screen' && window.initAdminRolesPage) window.initAdminRolesPage();
+            if (screenId === 'owner-screen' && window.initOwnerScreen) window.initOwnerScreen();
+            if (screenId === 'settings-screen' && window.initSettingsScreen) window.initSettingsScreen();
             
             if (window.applyRolePermissions) window.applyRolePermissions();
         }
@@ -198,19 +231,117 @@
             setLanguage(currentLanguage);
         });
     </script>
+    <script src="auth.js"></script>
 
 </head>
 <body>
+    <!-- صفحة الدخول المستقلة -->
+    <div id="login-screen" class="login-screen login-mudad">
+        <div class="login-layout">
+          <aside class="program-panel" aria-label="تعريف برنامج PMS">
+            <h2 class="program-title">برنامج تقييم مؤشرات الأداء (PMS)</h2>
+            <p class="program-lead">منظومة ذكية لمتابعة الأداء، تحسين الكفاءة، ورفع الجودة عبر مؤشرات دقيقة.</p>
+            <div class="program-cards">
+              <div class="program-card">
+                <h3>الأهداف</h3>
+                <ul>
+                  <li>تحويل الرؤية الإستراتيجية إلى مؤشرات قابلة للقياس.</li>
+                  <li>ربط الأهداف بالأقسام والموظفين بمصفوفة واضحة.</li>
+                  <li>متابعة دورية وتحسين مستمر بنقاط بيانات موثوقة.</li>
+                </ul>
+              </div>
+              <div class="program-card">
+                <h3>الأهمية</h3>
+                <ul>
+                  <li>شفافية في الأداء وتمكين اتخاذ القرار.</li>
+                  <li>تحديد مواطن القوة والفرص التحسينية بسرعة.</li>
+                  <li>تقليل الهدر وتعظيم العائد التشغيلي.</li>
+                </ul>
+              </div>
+              <div class="program-card">
+                <h3>الأثر على المنشأة</h3>
+                <ul>
+                  <li>زيادة الإنتاجية ورفع كفاءة الفرق.</li>
+                  <li>تحسين جودة الخدمات ورضا المستفيدين.</li>
+                  <li>دعم النمو المستدام عبر بيانات دقيقة.</li>
+                </ul>
+              </div>
+            </div>
+          </aside>
+          <div class="login-card">
+            <div class="login-brand" aria-hidden="true">
+                <svg class="brand-icon" width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="#b28a2a"/>
+                            <stop offset="1" stop-color="#d4af37"/>
+                        </linearGradient>
+                    </defs>
+                    <circle cx="32" cy="32" r="30" fill="none" stroke="url(#g)" stroke-width="2" opacity="0.35" />
+                    <path d="M20 40c4-8 20-8 24 0M24 26l8-6 8 6M24 46h16" fill="none" stroke="url(#g)" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="32" cy="26" r="4" fill="url(#g)"/>
+                </svg>
+            </div>
+            <h1 class="login-title">دخول</h1>
+            <p class="login-subtitle">لا تملك حساب؟ <a id="link-register" href="#" aria-label="تسجيل">تسجيل</a></p>
+
+
+            <!-- حقول الدخول — تبقى ظاهرة افتراضيًا دون تغيير المنطق -->
+            <div class="login-fields">
+                <div class="input-wrap">
+                    <span class="input-icon email" aria-hidden="true"></span>
+                    <input id="auth-email" class="login-input" type="text" placeholder="اسم المستخدم" />
+                </div>
+                <small id="hint-email" class="input-hint"></small>
+                <div class="input-wrap">
+                    <span class="input-icon lock" aria-hidden="true"></span>
+                    <input id="auth-password" class="login-input" type="password" placeholder="كلمة المرور" />
+                    <button type="button" id="toggle-password" class="password-toggle" aria-label="إظهار كلمة المرور">إظهار</button>
+                </div>
+                <small id="hint-password" class="input-hint"></small>
+                <div class="remember-wrap">
+                    <label><input type="checkbox" id="remember-me" checked> تذكرني على هذا الجهاز</label>
+                </div>
+                <button id="btn-login" class="login-action">تسجيل الدخول</button>
+                <!-- تمت إزالة زر "إنشاء حساب" بناءً على الطلب -->
+                <button id="btn-reset" class="login-action btn-secondary" style="background:#ecf0f1;color:#2c3e50">نسيت كلمة المرور؟</button>
+                <p id="auth-message" class="auth-message"></p>
+            </div>
+            <div class="login-fields" style="margin-top:16px; border-top:1px solid #eee; padding-top:14px;">
+                <h2 style="margin-bottom:8px;">إنشاء منشأة جديدة</h2>
+                <div class="input-wrap">
+                    <span class="input-icon org" aria-hidden="true"></span>
+                    <input id="new-org-name" class="login-input" type="text" placeholder="اسم المنشأة" />
+                </div>
+                <div class="input-wrap">
+                    <span class="input-icon email" aria-hidden="true"></span>
+                    <input id="new-org-username" class="login-input" type="text" placeholder="اسم مستخدم المسؤول" />
+                </div>
+                <div class="input-wrap">
+                    <span class="input-icon lock" aria-hidden="true"></span>
+                    <input id="new-org-password" class="login-input" type="password" placeholder="كلمة مرور المسؤول" />
+                </div>
+                <button id="btn-create-org" class="login-action">إنشاء المنشأة والدخول</button>
+                <small id="create-org-msg" class="input-hint"></small>
+            </div>
+            
+        </div>
+        </div>
+        <div class="login-footer">
+            <p class="login-designer">
+                من تصميم Mohamed El Emam —
+                <a class="designer-email" href="mailto:FATHY@KKE.BZ">FATHY@KKE.BZ</a>
+            </p>
+        </div>
+    </div>
+    
+    <!-- هيكل التطبيق يُعرض بعد تسجيل الدخول -->
+    <div id="app-shell" style="display:none;">
 
     <div class="sidebar">
         <h2 data-i18n="app_title">نظام إدارة الأداء</h2>
-        <div class="lang-switch">
-            <label for="language-select" data-i18n="lang_label">اللغة</label>
-            <select id="language-select" onchange="handleLanguageChange(this.value)">
-                <option value="ar">العربية</option>
-                <option value="en">English</option>
-            </select>
-        </div>
+        <div id="org-name-badge" style="margin-top:4px;color:#cbd5e1;font-size:0.95em;font-weight:600;text-align:center;"></div>
+        
         <nav>
             <a href="#" id="menu-dashboard" onclick="showScreen('dashboard-screen')" data-i18n="menu_dashboard">لوحة التحكم العامة</a>
             
@@ -222,57 +353,134 @@
             <a href="#" id="menu-goals" onclick="showScreen('goals-screen')" data-i18n="menu_goals">تحديد الأهداف الزمنية</a>
             <hr>
             <a href="#" id="menu-record" onclick="showScreen('record-screen')" data-i18n="menu_record">تسجيل الأداء</a>
-            <a href="#" id="menu-records-list" onclick="showScreen('records-list-screen')" data-i18n="menu_records_list">سجلات الأداء</a>
+            
             <hr>
-            <a href="#" id="menu-personal" onclick="showScreen('personal-dashboard-screen')" data-i18n="menu_employee_review">نتيجة التقييم للموظف</a>
+            
             <a href="#" id="menu-reports" onclick="showScreen('reports-screen')" data-i18n="menu_reports">التقارير والإحصائيات</a>
             <a href="#" id="menu-data-mgmt" onclick="showScreen('data-management-screen')" data-i18n="menu_data_mgmt">إدارة البيانات</a>
+            <a href="#" id="menu-diagnostics" onclick="showScreen('diagnostics-screen')">تشخيص الاتساق</a>
             <a href="#" id="menu-roles" onclick="showScreen('roles-screen')" data-i18n="menu_roles">الأدوار والصلاحيات</a>
+            <a href="#" id="menu-roles-admin" onclick="showScreen('roles-admin-screen')" data-i18n="menu_roles_admin">إدارة الأدوار</a>
+            <a href="#" id="menu-owner" onclick="showScreen('owner-screen')">إدارة المنشآت (المالك)</a>
+            <hr>
+            <a href="#" id="menu-settings" onclick="showScreen('settings-screen')" data-i18n="menu_settings">الإعدادات</a>
         </nav>
     </div>
 
     <div class="main-content">
+        <div id="account-actions" style="text-align:right; margin:10px 0; display:flex; gap:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap;">
+            <span id="auth-user-email"></span>
+            <span id="current-role-badge" class="role-badge" style="display:none;"></span>
+            <span id="global-banner" class="global-banner" style="display:none;"></span>
+            <div class="account-lang">
+                <label for="language-toggle-inline" data-i18n="lang_label">اللغة</label>
+                <select id="language-toggle-inline" onchange="handleLanguageChange(this.value)">
+                    <option value="ar">العربية</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+            <div class="account-theme">
+                <label for="theme-toggle-inline" data-i18n="theme_label">الثيم</label>
+                <select id="theme-toggle-inline" onchange="handleThemeChange(this.value)">
+                    <option value="light" data-i18n="theme_light">فاتح</option>
+                    <option value="dark" data-i18n="theme_dark">داكن</option>
+                </select>
+                <span id="language-badge" class="lang-badge"></span>
+            </div>
+            <button id="btn-logout">تسجيل الخروج</button>
+        </div>
+        <div id="org-name-main" style="margin:6px 0 14px 0; padding:8px 12px; background:#ecf0f1; color:#334155; border:1px solid #e2e8f0; border-radius:8px; font-weight:700; display:flex; align-items:center; gap:8px;"> </div>
         
         <div id="dashboard-screen" class="screen">
             <h1 data-i18n="menu_dashboard">لوحة التحكم العامة</h1>
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h4 data-i18n="stat_total_emp">إجمالي الموظفين</h4>
-                    <p id="stat-total-employees">0</p>
+            <div class="dashboard-controls">
+                <div class="controls-left">
+                    <label for="dashboard-dept-filter" data-i18n="table_dept">القسم</label>
+                    <select id="dashboard-dept-filter"></select>
                 </div>
-                <div class="stat-card">
-                    <h4 data-i18n="stat_total_departments">إجمالي الأقسام</h4>
-                    <p id="stat-total-departments">0</p>
-                </div>
-                <div class="stat-card">
-                    <h4 data-i18n="stat_active_kpis">مؤشرات الأداء النشطة</h4>
-                    <p id="stat-active-kpis">0</p>
-                </div>
-                <div class="stat-card">
-                    <h4 data-i18n="stat_avg_performance">متوسط الأداء العام</h4>
-                    <p id="stat-avg-performance">0%</p>
+                <div class="controls-right">
+                    <input type="text" id="dashboard-search-input" class="search-input" placeholder="بحث..." />
+                    <button id="dashboard-refresh" class="btn-secondary" data-i18n="btn_refresh">تحديث</button>
+                    <button id="dashboard-clear-search" class="btn-secondary">مسح البحث</button>
+                    <button id="dashboard-reset-filters" class="btn-secondary">إعادة التعيين</button>
                 </div>
             </div>
-            
-            <div class="chart-container" style="height: 350px;">
-                <h3 data-i18n="subtitle_dept_perf" style="margin-bottom: 10px;">أداء الأقسام (آخر 90 يوماً)</h3>
-                <canvas id="department-performance-chart"></canvas>
+            <div class="dashboard-layout">
+                <div class="dashboard-col left">
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <h3 data-i18n="subtitle_dept_perf">أداء الأقسام (آخر 90 يوماً)</h3>
+                        </div>
+                        <div class="panel-body" id="dept-performance-panel">
+                            <canvas id="department-performance-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <h3 data-i18n="subtitle_top_emp">أفضل 5 موظفين (آخر 30 يوماً)</h3>
+                        </div>
+                        <div class="panel-body" id="top-employees-panel">
+                            <table id="top-employees-table" class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th data-i18n="table_name">الاسم</th>
+                                        <th data-i18n="table_dept">القسم</th>
+                                        <th data-i18n="table_score">النتيجة</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="dashboard-col right">
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <h3><span data-i18n="subtitle_overall_trend_base">تطور الأداء العام</span></h3>
+                            <select id="dashboard-global-period">
+                                <option value="30" data-i18n="period_30_days">آخر 30 يوماً</option>
+                                <option value="60" data-i18n="period_60_days" selected>آخر 60 يوماً</option>
+                                <option value="90" data-i18n="period_90_days">آخر 90 يوماً</option>
+                            </select>
+                        </div>
+                        <div class="panel-body" id="overall-trend-panel">
+                            <canvas id="overall-trend-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="panel-card">
+                        <div class="panel-body">
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <h4 data-i18n="stat_total_emp">إجمالي الموظفين</h4>
+                                    <p id="stat-total-employees">0</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4 data-i18n="stat_total_departments">إجمالي الأقسام</h4>
+                                    <p id="stat-total-departments">0</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4 data-i18n="stat_active_kpis">مؤشرات الأداء النشطة</h4>
+                                    <p id="stat-active-kpis">0</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4 data-i18n="stat_avg_performance">متوسط الأداء العام</h4>
+                                    <p id="stat-avg-performance">0%</p>
+                                    <small id="stat-avg-performance-delta" class="delta-badge"></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <h3 data-i18n="critical_kpis">المؤشرات الحرجة</h3>
+                        </div>
+                        <div class="panel-body">
+                            <ul id="critical-kpis-list" class="critical-list"></ul>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <h3 data-i18n="subtitle_top_emp" style="margin-top: 30px;">أفضل 5 موظفين (آخر 30 يوماً)</h3>
-            <table id="top-employees-table" class="data-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th data-i18n="table_name">الاسم</th>
-                        <th data-i18n="table_dept">القسم</th>
-                        <th data-i18n="table_score">النتيجة</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
         </div>
         
         <div id="personal-dashboard-screen" class="screen" style="display:none;">
@@ -309,7 +517,7 @@
 
             <form id="performance-record-form">
                 <label for="record-employee-id" data-i18n="table_emp_name">اسم الموظف</label>
-                <select id="record-employee-id" onchange="renderRecordKpis()"></select>
+                <select id="record-employee-id" onchange="renderRecordKpis(); renderRecordEmployeeHistory()"></select>
 
                 <label for="record-date" data-i18n="table_date">التاريخ</label>
                 <input type="date" id="record-date" value="" onchange="renderRecordKpis()" required>
@@ -323,32 +531,71 @@
 
                 <button type="button" onclick="savePerformanceRecord()" data-i18n="btn_save_record">حفظ السجل</button>
             </form>
+
+            <div id="record-employee-records" style="margin-top: 24px;">
+                <h3 style="margin-top: 10px;">سجلات الموظف</h3>
+                <table id="record-employee-records-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="table_date">التاريخ</th>
+                            <th data-i18n="table_kpis_count">عدد المؤشرات</th>
+                            <th data-i18n="table_weighted_score">النتيجة الموزونة لليوم</th>
+                            <th data-i18n="table_actions">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
         
         <div id="goals-screen" class="screen" style="display:none;">
             <h1 data-i18n="menu_goals">تحديد الأهداف الزمنية</h1>
 
-            <form id="goal-form">
+            <form id="goal-form" class="form-grid">
                 <label for="goal-kpi-id" data-i18n="kpi_name">المؤشر المستهدف</label>
                 <select id="goal-kpi-id"></select>
 
+                <label for="goal-level">مستوى الهدف</label>
+                <select id="goal-level">
+                    <option value="employee">على مستوى الموظف</option>
+                    <option value="department">على مستوى القسم</option>
+                </select>
+
+                <label for="goal-employee-id" data-i18n="table_emp_name">اسم الموظف</label>
+                <select id="goal-employee-id"></select>
+                <small id="goal-dept-hint" class="input-hint"></small>
+
                 <label for="goal-target" data-i18n="table_target_val">القيمة المستهدفة (%)</label>
-                <input type="number" id="goal-target" min="1" max="100" placeholder="1-100" required>
+                <input type="number" id="goal-target" min="1" max="100" step="1" placeholder="1-100" required>
 
                 <label for="goal-end-date" data-i18n="table_end_date">تاريخ الانتهاء</label>
                 <input type="date" id="goal-end-date" required>
+                <small id="goal-date-hint" class="input-hint"></small>
 
                 <button type="button" onclick="setLongTermGoal()" data-i18n="btn_set_goal">تحديد الهدف</button>
+                <small id="goal-validation-message" class="input-hint"></small>
             </form>
+
+            <div class="goals-controls">
+                <input type="text" id="goals-search-input" class="search-input" placeholder="ابحث باسم المؤشر...">
+                <select id="goals-status-filter">
+                    <option value="all">الكل</option>
+                    <option value="active" data-i18n="status_active">نشط</option>
+                    <option value="expired" data-i18n="status_expired">منتهي</option>
+                </select>
+            </div>
 
             <h3 style="margin-top: 30px;" data-i18n="active_goals">الأهداف النشطة</h3>
             <table id="goals-table" class="data-table">
                 <thead>
                     <tr>
+                        <th>المستوى</th>
+                        <th>الجهة</th>
                         <th data-i18n="kpi_name">المؤشر</th>
                         <th data-i18n="table_target_val">القيمة المستهدفة</th>
                         <th data-i18n="table_end_date">تاريخ الانتهاء</th>
                         <th data-i18n="table_status">الحالة</th>
+                        <th>التقدم</th>
                         <th data-i18n="table_actions">الإجراءات</th>
                     </tr>
                 </thead>
@@ -360,30 +607,60 @@
         <div id="records-list-screen" class="screen" style="display:none;">
             <h1 data-i18n="menu_records_list">سجلات الأداء</h1>
 
-            <form style="gap: 10px;">
+            <form id="records-filters-form" style="gap: 10px; display:flex; flex-wrap:wrap; align-items:center;">
                 <label for="records-dept-filter" data-i18n="table_dept">تصفية حسب القسم:</label>
-                <select id="records-dept-filter" onchange="updateRecordsEmployeeSelect(); renderPerformanceRecords()" style="flex-grow: 1;"></select>
-                
+                <select id="records-dept-filter" style="flex-grow: 1;"></select>
+
                 <label for="records-employee-select" data-i18n="table_emp_name">تصفية حسب الموظف:</label>
-                <select id="records-employee-select" onchange="renderPerformanceRecords()" style="flex-grow: 1;"></select>
+                <select id="records-employee-select" style="flex-grow: 1;"></select>
+
+                <label for="records-kpi-filter" data-i18n="filter_kpi">تصفية حسب المؤشر:</label>
+                <select id="records-kpi-filter" style="flex-grow: 1;"></select>
+
+                <label for="records-start-date" data-i18n="records_from_date">من تاريخ</label>
+                <input type="date" id="records-start-date" />
+                <label for="records-end-date" data-i18n="records_to_date">إلى تاريخ</label>
+                <input type="date" id="records-end-date" />
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <button type="button" id="records-range-today" class="btn-secondary">اليوم</button>
+                    <button type="button" id="records-range-7" class="btn-secondary">آخر 7 أيام</button>
+                    <button type="button" id="records-range-30" class="btn-secondary">آخر 30 يوماً</button>
+                </div>
+
+                <input type="text" id="records-search-input" class="search-input" placeholder="ابحث بالتاريخ أو القيمة..." />
+                <button type="button" id="records-export-excel" class="btn-secondary" data-i18n="btn_export_excel">تصدير Excel</button>
+                <button type="button" id="records-export-csv" class="btn-secondary" data-i18n="btn_export_csv">تصدير CSV</button>
+                <button type="button" id="records-reset-filters" class="btn-secondary">إعادة تعيين المرشحات</button>
+                <label style="margin-inline-start:auto;">حجم الصفحة</label>
+                <select id="records-page-size" style="width:90px;">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
             </form>
 
             <div id="records-table-container" style="display: none;">
+                <div id="records-summary" style="margin-top:10px; color:#7f8c8d;"></div>
                 <h3 style="margin-top: 30px;" data-i18n="daily_records">سجلات الأداء اليومية</h3>
                 <table id="records-table" class="data-table">
                     <thead>
                         <tr>
-                            <th data-i18n="table_date">التاريخ</th>
+                            <th data-i18n="table_date" onclick="toggleRecordsSort('date')" style="cursor:pointer;">التاريخ</th>
                             <th data-i18n="table_kpis_count">عدد المؤشرات</th>
-                            <th data-i18n="table_weighted_score">النتيجة الموزونة لليوم</th>
+                            <th data-i18n="table_weighted_score" onclick="toggleRecordsSort('score')" style="cursor:pointer;">النتيجة الموزونة لليوم</th>
                             <th data-i18n="table_actions">الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
                         </tbody>
                 </table>
+                <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:10px;">
+                    <button type="button" id="records-page-prev" class="btn-secondary">السابق</button>
+                    <span id="records-page-info" style="min-width:120px; text-align:center;"></span>
+                    <button type="button" id="records-page-next" class="btn-secondary">التالي</button>
+                </div>
             </div>
-            <p id="records-message" data-i18n="msg_select_employee_records" style="text-align: center; margin-top: 50px; color: #7f8c8d;"></p>
+            <p id="records-message" data-i18n="msg_select_employee_records" style="text-align: center; margin-top: 20px; color: #7f8c8d;"></p>
         </div>
 
         <div id="kpis-screen" class="screen" style="display:none;">
@@ -454,8 +731,10 @@
             </form>
 
             <h3 data-i18n="subtitle_employee_list" style="margin-top: 30px; display: inline-block;">قائمة الموظفين</h3>
-            
-            <div class="search-container" style="float: left; margin-top: 25px;">
+            <div class="search-container" style="float: left; margin-top: 25px; display:flex; gap:8px; align-items:center;">
+                <select id="employees-dept-filter" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                    <option value="all" data-i18n="filter_all_dept">جميع الأقسام</option>
+                </select>
                 <input type="text" id="employee-search-input" onkeyup="renderEmployees()" placeholder="ابحث بالاسم أو الرقم التعريفي..." style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
             </div>
 
@@ -501,47 +780,288 @@
 
         <div id="reports-screen" class="screen" style="display:none;">
             <h1 data-i18n="menu_reports">التقارير والإحصائيات</h1>
-            
-            <h2 data-i18n="custom_reports">تقارير الأداء المخصصة</h2>
-            <form>
-                <label for="report-employee-select" data-i18n="table_emp_name">اختر الموظف</label>
-                <select id="report-employee-select"></select>
-                
-                <label for="report-start-date">تاريخ البداية</label>
-                <input type="date" id="report-start-date" required>
-                
-                <label for="report-end-date">تاريخ النهاية</label>
-                <input type="date" id="report-end-date" required>
-                
-                <button type="button" onclick="generateReport()" data-i18n="btn_generate_report">توليد التقرير</button>
-            </form>
-            
-            <div id="report-output" style="margin-top: 30px; display: none;">
-                <h3 id="report-title" data-i18n="report_title_emp">تقرير أداء الموظف</h3>
-                <p id="report-avg-score" style="font-weight: bold;"></p>
-                
-                <table id="daily-performance-table" class="data-table">
-                    <thead>
-                        <tr>
-                            <th data-i18n="table_date">التاريخ</th>
-                            <th data-i18n="table_weighted_score">النتيجة الموزونة</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        </tbody>
-                </table>
-                
-                <div style="margin-top: 15px;">
-                    <button type="button" onclick="exportReport('PDF')" data-i18n="btn_export_pdf">تصدير PDF</button>
-                    <button type="button" onclick="exportReport('Excel')" data-i18n="btn_export_excel">تصدير Excel</button>
-                    <button type="button" onclick="printReport()" data-i18n="btn_print_report" class="btn-secondary">طباعة التقرير (A4)</button>
+            <div id="reports-card-grid" class="report-card-grid panel-dark" style="margin-bottom:12px;">
+                <div class="report-card rc-employee" role="button" tabindex="0" data-tab="employee" onclick="setReportTab('employee')" title="تقرير الموظف — نطاق زمني ونتائج يومية">
+                    <div class="rc-title">تقرير الموظف</div>
+                    <div class="rc-desc">تقرير مفصّل لنتائج الأداء اليومية ومتوسط الفترة مع أدوات الطباعة والتصدير.</div>
+                </div>
+                <div class="report-card rc-records" role="button" tabindex="0" data-tab="employee_records" onclick="setReportTab('employee_records')" title="سجلات الموظف — جدول وفرز وتصفية">
+                    <div class="rc-title">سجلات الموظف</div>
+                    <div class="rc-desc">سجل يومي قابل للفرز والتصفية مع تفاصيل المؤشرات وإمكانات التصدير والطباعة.</div>
+                </div>
+                <div class="report-card rc-overall" role="button" tabindex="0" data-tab="overall" onclick="setReportTab('overall')" title="التقرير الإجمالي — ملخص نصّي">
+                    <div class="rc-title">التقرير الإجمالي</div>
+                    <div class="rc-desc">ملخص أداء الأقسام ومتوسط المنظمة خلال الفترة المحددة مع خيارات الطباعة والتصدير.</div>
+                </div>
+                <div class="report-card rc-quick" role="button" tabindex="0" data-tab="quick" onclick="setReportTab('quick')" title="ملخص سريع — نظرة فورية قابلة للطباعة">
+                    <div class="rc-title">ملخص سريع</div>
+                    <div class="rc-desc">نظرة فورية لأبرز المؤشرات والتنبيهات قابلة للطباعة والتصدير.</div>
+                </div>
+                <div class="report-card rc-employee-result" role="button" tabindex="0" data-tab="employee_result" onclick="setReportTab('employee_result')" title="نتيجة التقييم للموظف — متوسط الأداء وحالة الهدف">
+                    <div class="rc-title">نتيجة التقييم للموظف</div>
+                    <div class="rc-desc">متوسط الأداء (آخر 30 يوماً)، حالة الهدف الزمني ومخطط الاتجاه اليومي.</div>
+                </div>
+                <div class="report-card rc-dept-compare" role="button" tabindex="0" data-tab="dept_compare" onclick="setReportTab('dept_compare')" title="مقارنة الأقسام — متوسط الأداء لكل قسم">
+                    <div class="rc-title">مقارنة الأقسام</div>
+                    <div class="rc-desc">مقارنة زمنية لمتوسط أداء الأقسام خلال فترة محددة مع أدوات الطباعة والتصدير.</div>
+                </div>
+                <div class="report-card rc-kpi-dept" role="button" tabindex="0" data-tab="kpi_dept" onclick="setReportTab('kpi_dept')" title="تحليل KPI حسب القسم — متوسط المؤشر لكل موظف">
+                    <div class="rc-title">تحليل KPI حسب القسم</div>
+                    <div class="rc-desc">متوسط مؤشر محدد لكل موظفي القسم خلال الفترة المختارة مع خيارات الطباعة والتصدير.</div>
+                </div>
+                <div class="report-card rc-kpi-correlation" role="button" tabindex="0" data-tab="kpi_correlation" onclick="setReportTab('kpi_correlation')" title="الارتباط بين مؤشرين — العلاقة بين KPI1 وKPI2">
+                    <div class="rc-title">ارتباط مؤشرين KPI</div>
+                    <div class="rc-desc">تحليل علاقة KPI1 مقابل KPI2 لكل موظف مع طباعة الرسم وتصدير النتائج.</div>
+                </div>
+                <div class="report-card rc-weekday-heatmap" role="button" tabindex="0" data-tab="weekday_heatmap" onclick="setReportTab('weekday_heatmap')" title="خريطة أيام الأسبوع — أنماط الأداء حسب اليوم">
+                    <div class="rc-title">خريطة أيام الأسبوع</div>
+                    <div class="rc-desc">متوسط الأداء لكل يوم أسبوع لاكتشاف الأنماط وتحديد أفضل/أضعف الأيام.</div>
+                </div>
+            </div>
+            <div id="reports-controls" style="display:none; margin-bottom:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <button type="button" id="reports-back" class="btn-secondary">عودة إلى التقارير</button>
+                <label for="threshold-good" style="margin-inline-start:10px;">عتبة جيد (%)</label>
+                <input type="number" id="threshold-good" min="50" max="100" style="width:80px;" />
+                <label for="threshold-warn">عتبة تحذير (%)</label>
+                <input type="number" id="threshold-warn" min="0" max="100" style="width:80px;" />
+                <span style="flex:1"></span>
+                <button type="button" id="rc-export" class="btn-secondary">تصدير</button>
+                <button type="button" id="rc-print" class="btn-secondary">طباعة</button>
+            </div>
+
+            <div id="report-employee-section" style="display:none;">
+                <h2 data-i18n="custom_reports">تقارير الأداء المخصصة</h2>
+                <form>
+                    <label for="report-dept-filter" data-i18n="table_dept">القسم</label>
+                    <select id="report-dept-filter"></select>
+                    <label for="report-employee-select" data-i18n="table_emp_name">اختر الموظف</label>
+                    <select id="report-employee-select"></select>
+                    <label for="report-start-date">تاريخ البداية</label>
+                    <input type="date" id="report-start-date" required>
+                    <label for="report-end-date">تاريخ النهاية</label>
+                    <input type="date" id="report-end-date" required>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <button type="button" id="report-range-today" class="btn-secondary">اليوم</button>
+                        <button type="button" id="report-range-7" class="btn-secondary">آخر 7 أيام</button>
+                        <button type="button" id="report-range-30" class="btn-secondary">آخر 30 يوماً</button>
+                    </div>
+                    <button type="button" onclick="generateReport()" data-i18n="btn_generate_report">توليد التقرير</button>
+                </form>
+                <div id="report-output" style="margin-top: 30px; display: none;">
+                    <h3 id="report-title" data-i18n="report_title_emp">تقرير أداء الموظف</h3>
+                    <p id="report-avg-score" style="font-weight: bold;"></p>
+                    <div id="report-summary-cards" class="stats-grid small" style="display:none; margin-bottom:8px;">
+                        <div class="stat-card">
+                            <h4>عدد الأيام في التقرير</h4>
+                            <p id="rsc-emp-count">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4>متوسط الفترة</h4>
+                            <p id="rsc-emp-avg">0%</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4>النطاق الزمني</h4>
+                            <p id="rsc-emp-period">—</p>
+                        </div>
+                    </div>
+                    <div id="report-legend" style="display:flex; gap:10px; align-items:center; margin:6px 0;">
+                        <span class="legend-dot" style="background:#2ecc71"></span><span style="font-size:0.9em;">جيد</span>
+                        <span class="legend-dot" style="background:#f39c12"></span><span style="font-size:0.9em;">تحذير</span>
+                        <span class="legend-dot" style="background:#e74c3c"></span><span style="font-size:0.9em;">ضعيف</span>
+                    </div>
+                    <table id="daily-performance-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="table_date">التاريخ</th>
+                                <th data-i18n="table_weighted_score">النتيجة الموزونة</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div style="margin-top: 15px;">
+                        <button type="button" onclick="exportReport('PDF')" data-i18n="btn_export_pdf">تصدير PDF</button>
+                        <button type="button" onclick="exportReport('Excel')" data-i18n="btn_export_excel">تصدير Excel</button>
+                        <button type="button" id="report-export-csv" class="btn-secondary" data-i18n="btn_export_csv">تصدير CSV</button>
+                        <button type="button" onclick="printReport()" data-i18n="btn_print_report" class="btn-secondary">طباعة التقرير (A4)</button>
+                        <label style="margin-inline-start:12px;">وضع مضغوط</label>
+                        <input type="checkbox" id="report-dense-toggle">
+                    </div>
                 </div>
             </div>
 
-            <h2 style="margin-top: 40px;" data-i18n="subtitle_overall_report">التقرير الإجمالي للمنظمة</h2>
-            <button type="button" onclick="generateOverallReport()" data-i18n="btn_generate_overall">توليد التقرير الإجمالي</button>
-            <div id="overall-report-output" style="margin-top: 20px;">
+            <div id="report-employee-records-section" style="display:none; margin-top:10px;">
+                <h2>سجلات الموظف</h2>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                    <label for="records-tab-dept" data-i18n="table_dept">القسم</label>
+                    <select id="records-tab-dept"></select>
+                    <label for="records-tab-employee" data-i18n="table_emp_name">اختر الموظف</label>
+                    <select id="records-tab-employee"></select>
+                    <label for="records-tab-start">تاريخ البداية</label>
+                    <input type="date" id="records-tab-start">
+                    <label for="records-tab-end">تاريخ النهاية</label>
+                    <input type="date" id="records-tab-end">
+                    <input type="text" id="records-tab-search" class="search-input" placeholder="ابحث بالتاريخ أو القيمة...">
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <button type="button" id="records-tab-range-today" class="btn-secondary">اليوم</button>
+                        <button type="button" id="records-tab-range-7" class="btn-secondary">آخر 7 أيام</button>
+                        <button type="button" id="records-tab-range-30" class="btn-secondary">آخر 30 يوماً</button>
+                    </div>
+                    <button type="button" id="records-tab-export" class="btn-secondary">تصدير Excel</button>
+                    <button type="button" id="records-tab-export-csv" class="btn-secondary">تصدير CSV</button>
+                    <button type="button" id="records-tab-print" class="btn-secondary">طباعة</button>
+                    <label>حجم الصفحة</label>
+                    <select id="records-tab-page-size" style="width:90px;">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
                 </div>
+                <div style="margin-top:10px;">
+                    <div id="records-summary-cards" class="stats-grid small" style="display:none; margin-bottom:8px;">
+                        <div class="stat-card">
+                            <h4>عدد السجلات</h4>
+                            <p id="rsc-rec-count">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4>متوسط النتيجة</h4>
+                            <p id="rsc-rec-avg">0%</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4>الصفحة الحالية</h4>
+                            <p id="rsc-rec-page">1/1</p>
+                        </div>
+                    </div>
+                    <div id="report-records-summary" style="margin-bottom:8px; color:#7f8c8d;"></div>
+                    <table id="report-records-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="table_date">التاريخ</th>
+                                <th data-i18n="table_kpis_count">عدد المؤشرات</th>
+                                <th data-i18n="table_weighted_score">النتيجة الموزونة لليوم</th>
+                                <th data-i18n="table_actions">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div style="display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:10px;">
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <label for="records-tab-dense-toggle">وضع مضغوط</label>
+                            <input type="checkbox" id="records-tab-dense-toggle">
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <button type="button" id="records-tab-page-prev" class="btn-secondary">السابق</button>
+                            <span id="records-tab-page-info" style="min-width:120px; text-align:center;"></span>
+                            <button type="button" id="records-tab-page-next" class="btn-secondary">التالي</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="report-overall-section" style="display:none; margin-top: 20px;">
+                <h2 data-i18n="subtitle_overall_report">التقرير الإجمالي للمنظمة</h2>
+                <button type="button" onclick="generateOverallReport()" data-i18n="btn_generate_overall">توليد التقرير الإجمالي</button>
+                <div style="display:flex; gap:10px; margin-top:8px;">
+                    <button type="button" id="overall-export" class="btn-secondary">تصدير Excel</button>
+                    <button type="button" id="overall-print" class="btn-secondary">طباعة</button>
+                </div>
+                <div id="overall-report-output" style="margin-top: 10px;"></div>
+            </div>
+
+            <div id="report-quick-section" style="display:none; margin-top: 20px;">
+                <h2>ملخص سريع</h2>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <button type="button" id="btn-generate-quick-summary" class="btn-secondary">توليد الملخص السريع</button>
+                    <button type="button" id="quick-export" class="btn-secondary">تصدير Excel</button>
+                    <button type="button" id="quick-print" class="btn-secondary">طباعة</button>
+                </div>
+                <div id="quick-summary-output" style="margin-top: 10px;"></div>
+            </div>
+
+            <div id="report-employee-result-section" style="display:none; margin-top: 20px;">
+                <h2>نتيجة التقييم للموظف</h2>
+                <form>
+                    <label for="report-result-employee-select" data-i18n="table_emp_name">اختر الموظف:</label>
+                    <select id="report-result-employee-select"></select>
+                </form>
+                <div id="employee-result-content" style="margin-top: 20px;">
+                    <p id="employee-result-message" data-i18n="msg_select_employee_dash" style="text-align: center; margin-top: 50px;">الرجاء اختيار موظف لعرض نتيجة تقييمه.</p>
+                    <div id="employee-result-score-card" style="display:none;" class="stats-grid">
+                        <div class="stat-card">
+                            <h4 data-i18n="stat_current_score">متوسط الأداء الحالي</h4>
+                            <p id="employee-result-current-score">0%</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4 data-i18n="stat_goal_status">حالة الهدف الزمني</h4>
+                            <p id="employee-result-goal-status" style="font-size: 1.5em;"></p>
+                        </div>
+                    </div>
+                    <div id="employee-result-chart-container" class="chart-container" style="display:none;">
+                        <h3 data-i18n="subtitle_daily_perf" style="margin-bottom: 10px;">تطور الأداء اليومي</h3>
+                        <canvas id="employee-result-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="report-dept-compare-section" style="display:none; margin-top: 20px;">
+                <h2>مقارنة الأقسام زمنياً</h2>
+                <label>الفترة</label>
+                <select id="dept-compare-period"><option value="30">30</option><option value="60">60</option><option value="90">90</option></select>
+                <div style="display:flex; gap:10px; margin-top:8px;">
+                    <button type="button" id="dept-compare-export" class="btn-secondary">تصدير Excel</button>
+                    <button type="button" id="dept-compare-print" class="btn-secondary">طباعة</button>
+                </div>
+                <div style="margin-top:10px;"><canvas id="dept-compare-chart" height="160"></canvas></div>
+            </div>
+
+            <div id="report-kpi-dept-section" style="display:none; margin-top: 20px;">
+                <h2>تحليل KPI حسب القسم</h2>
+                <label>القسم</label>
+                <select id="kpi-dept-filter"></select>
+                <label>المؤشر</label>
+                <select id="kpi-dept-select"></select>
+                <div style="display:flex; gap:10px; margin-top:8px;">
+                    <button type="button" id="kpi-dept-export" class="btn-secondary">تصدير Excel</button>
+                    <button type="button" id="kpi-dept-print" class="btn-secondary">طباعة</button>
+                </div>
+                <div style="margin-top:10px;"><canvas id="kpi-dept-chart" height="160"></canvas></div>
+            </div>
+
+            <div id="report-correlation-section" style="display:none; margin-top: 20px;">
+                <h2>الارتباط بين مؤشرين KPI</h2>
+                <label>القسم</label>
+                <select id="correlation-dept-filter"></select>
+                <label>المؤشر الأول</label>
+                <select id="correlation-kpi1-select"></select>
+                <label>المؤشر الثاني</label>
+                <select id="correlation-kpi2-select"></select>
+                <label>الفترة (أيام)</label>
+                <select id="correlation-period"><option value="30">30</option><option value="60">60</option><option value="90">90</option></select>
+                <div style="display:flex; gap:10px; margin-top:8px;">
+                    <button type="button" id="correlation-export" class="btn-secondary">تصدير Excel</button>
+                    <button type="button" id="correlation-print" class="btn-secondary">طباعة</button>
+                    <button type="button" id="correlation-save" class="btn-secondary">حفظ الإعداد</button>
+                    <button type="button" id="correlation-load" class="btn-secondary">استعادة الإعداد</button>
+                </div>
+                <div style="margin-top:10px;"><canvas id="kpi-correlation-chart" height="180"></canvas></div>
+            </div>
+
+            <div id="report-weekday-heatmap-section" style="display:none; margin-top: 20px;">
+                <h2>خريطة أيام الأسبوع</h2>
+                <label>القسم</label>
+                <select id="heatmap-dept-filter"></select>
+                <label>الفترة (أيام)</label>
+                <select id="heatmap-period"><option value="30">30</option><option value="60">60</option><option value="90">90</option></select>
+                <div style="display:flex; gap:10px; margin-top:8px;">
+                    <button type="button" id="heatmap-export" class="btn-secondary">تصدير Excel</button>
+                    <button type="button" id="heatmap-print" class="btn-secondary">طباعة</button>
+                </div>
+                <div style="margin-top:10px; overflow:auto;">
+                    <table id="weekday-heatmap-table" class="data-table">
+                        <thead><tr id="weekday-heatmap-head"></tr></thead>
+                        <tbody id="weekday-heatmap-body"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <div id="data-management-screen" class="screen" style="display:none;">
@@ -565,25 +1085,55 @@
                 <p data-i18n="clear_warning" style="color: red; font-weight: bold;">تحذير: هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات الأقسام، والموظفين، والسجلات، والمؤشرات، والأهداف.</p>
                 <button type="button" class="btn-danger" onclick="clearAllData()" data-i18n="btn_clear_data">مسح الكل</button>
             </div>
+
+            <div class="data-mgmt-section">
+                <h3 data-i18n="workflow_test">اختبار سير العمل</h3>
+                <p data-i18n="workflow_test_desc">إنشاء أقسام وموظفين ومؤشرات وأهداف وسجل أداء تجريبيًا للتحقق من عمل المراحل.</p>
+                <button type="button" onclick="runWorkflowTest()" data-i18n="btn_run_workflow_test">تشغيل الاختبار</button>
+            </div>
+        </div>
+
+        <div id="diagnostics-screen" class="screen" style="display:none;">
+            <h1>تشخيص الاتساق</h1>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <button type="button" id="run-diagnostics">تشغيل الفحص</button>
+                <label style="margin-inline-start:10px;">الوضع الآمن</label>
+                <select id="safe-mode-toggle">
+                    <option value="off">إيقاف</option>
+                    <option value="on">تشغيل</option>
+                </select>
+            </div>
+            <div id="diagnostics-summary" style="margin-top:15px;"></div>
+            <h3 style="margin-top:15px;">المشكلات</h3>
+            <ul id="diagnostics-issues" style="margin:0; padding-inline-start:18px;"></ul>
         </div>
 
         <div id="roles-screen" class="screen" style="display:none;">
             <h1 data-i18n="roles_heading">الأدوار والصلاحيات</h1>
-            <form id="roles-form" style="gap: 10px;">
-                <label for="role-select" data-i18n="role_label">اختر الدور</label>
-                <select id="role-select" onchange="handleRoleSelectChange()">
-                    <option value="super_admin" data-i18n="role_super_admin">مدير عام</option>
-                    <option value="admin" data-i18n="role_admin">مشرف</option>
-                    <option value="manager" data-i18n="role_manager">مدير قسم</option>
-                    <option value="hr" data-i18n="role_hr">الموارد البشرية</option>
-                    <option value="data_entry" data-i18n="role_data_entry">مدخل بيانات</option>
-                    <option value="viewer" data-i18n="role_viewer">مشاهد</option>
-                </select>
+            <form id="roles-form" style="gap: 10px;display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));align-items:center;">
+                <div>
+                    <label for="role-select" data-i18n="role_label">اختر الدور</label>
+                    <select id="role-select" onchange="handleRoleSelectChange()">
+                        <option value="super_admin" data-i18n="role_super_admin">مدير عام</option>
+                        <option value="admin" data-i18n="role_admin">مشرف</option>
+                        <option value="manager" data-i18n="role_manager">مدير قسم</option>
+                        <option value="hr" data-i18n="role_hr">الموارد البشرية</option>
+                        <option value="data_entry" data-i18n="role_data_entry">مدخل بيانات</option>
+                        <option value="viewer" data-i18n="role_viewer">مشاهد</option>
+                    </select>
+                </div>
 
-                <label for="role-dept-id" id="role-dept-label" data-i18n="role_dept_label">ربط القسم (للمدير)</label>
-                <select id="role-dept-id"></select>
+                <div id="role-summary-box" class="role-summary" style="grid-column:1/-1; margin-top:8px;">
+                    <div class="title" data-i18n="role_summary_title">ملخص الدور</div>
+                    <p id="role-summary-text"></p>
+                </div>
 
-                <div id="role-perms-container" style="margin-top:10px;">
+                <div>
+                    <label for="role-dept-id" id="role-dept-label" data-i18n="role_dept_label">ربط القسم (للمدير)</label>
+                    <select id="role-dept-id"></select>
+                </div>
+
+                <div id="role-perms-container" style="grid-column:1/-1;margin-top:10px;">
                     <label style="font-weight:bold;">صلاحيات الدور</label>
                     <div class="role-perms-grid" style="display:grid;grid-template-columns:repeat(2, minmax(200px, 1fr));gap:6px;margin-top:6px;">
                         <label><input type="checkbox" id="perm-manage-departments" data-perm="manage_departments"> إدارة الأقسام</label>
@@ -598,14 +1148,163 @@
                     <p style="color:#7f8c8d;font-size:0.9em;margin-top:6px;">تخصيص الصلاحيات لهذا الدور سيتم حفظه محليًا.</p>
                 </div>
 
-                <button type="button" onclick="saveRoleSettings()" data-i18n="btn_save">حفظ</button>
-                <p style="color:#7f8c8d;" data-i18n="roles_note">يتم تطبيق الصلاحيات فورًا.</p>
+                <div style="grid-column:1/-1;display:flex;gap:8px;align-items:center;">
+                    <button type="button" onclick="saveRoleSettings()" data-i18n="btn_save">حفظ</button>
+                    <span style="color:#7f8c8d;" data-i18n="roles_note">يتم تطبيق الصلاحيات فورًا.</span>
+                </div>
+            </form>
+
+        </div>
+
+        <div id="roles-admin-screen" class="screen" style="display:none;">
+            <h1>إدارة الأدوار والمستخدمين</h1>
+            <div id="admin-roles-management">
+                <div class="grid" style="display:grid;grid-template-columns:repeat(3, minmax(220px,1fr));gap:10px;">
+                    <div>
+                        <label>البريد للمستخدم الجديد</label>
+                        <input type="email" id="admin-invite-email" placeholder="example@domain.com">
+                    </div>
+                    <div>
+                        <label>كلمة المرور</label>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input type="text" id="admin-create-password" placeholder="••••••" style="flex:1;">
+                            <button type="button" id="admin-gen-pass">توليد</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label>ربط القسم (اختياري)</label>
+                        <select id="admin-invite-dept"></select>
+                    </div>
+                    <div style="grid-column:1/-1;">
+                        <label>الأدوار</label>
+                        <div id="admin-roles-multi" style="display:grid;grid-template-columns:repeat(3,minmax(160px,1fr));gap:6px;">
+                            <label><input type="checkbox" value="super_admin"> مدير عام</label>
+                            <label><input type="checkbox" value="admin"> مشرف</label>
+                            <label><input type="checkbox" value="manager"> مدير قسم</label>
+                            <label><input type="checkbox" value="hr"> الموارد البشرية</label>
+                            <label><input type="checkbox" value="data_entry"> مدخل بيانات</label>
+                            <label><input type="checkbox" value="viewer"> مشاهد</label>
+                        </div>
+                    </div>
+                    <div style="grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+                        <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="admin-create-send-reset" checked> إرسال رابط تعيين كلمة المرور بعد الإنشاء</label>
+                        <button type="button" id="admin-create-user">إنشاء المستخدم</button>
+                        <button type="button" id="admin-users-refresh">تحديث قائمة المستخدمين</button>
+                    </div>
+                </div>
+                <h2 style="margin-top:16px;">تعديل مستخدم قائم</h2>
+                <div class="grid" style="display:grid;grid-template-columns:repeat(4, minmax(200px,1fr));gap:10px;margin-top:8px;">
+                    <div>
+                        <label>UID</label>
+                        <input type="text" id="admin-user-uid" placeholder="أدخل UID">
+                    </div>
+                    <div>
+                        <label>البريد</label>
+                        <input type="email" id="admin-user-email" placeholder="أدخل البريد">
+                    </div>
+                    <div>
+                        <label>الأدوار</label>
+                        <div id="admin-roles-multi-edit" style="display:grid;grid-template-columns:repeat(3,minmax(160px,1fr));gap:6px;">
+                            <label><input type="checkbox" value="super_admin"> مدير عام</label>
+                            <label><input type="checkbox" value="admin"> مشرف</label>
+                            <label><input type="checkbox" value="manager"> مدير قسم</label>
+                            <label><input type="checkbox" value="hr"> الموارد البشرية</label>
+                            <label><input type="checkbox" value="data_entry"> مدخل بيانات</label>
+                            <label><input type="checkbox" value="viewer"> مشاهد</label>
+                        </div>
+                    </div>
+                    <div>
+                        <label>ربط القسم (للمدير)</label>
+                        <select id="admin-user-dept"></select>
+                    </div>
+                    <div>
+                        <label>تعطيل المستخدم</label>
+                        <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="admin-user-disabled"> معطل</label>
+                    </div>
+                </div>
+                <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    <button type="button" id="admin-save-user-roles">حفظ المستخدم</button>
+                    <button type="button" id="admin-send-reset">إرسال رابط تعيين كلمة مرور</button>
+                    <input type="password" id="admin-user-password" placeholder="كلمة المرور (للحذف من النظام)" style="max-width:220px;">
+                    <button type="button" id="admin-delete-user" class="btn-danger">حذف المستخدم</button>
+                </div>
+                <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+                    <input type="text" id="admin-users-search" placeholder="بحث بالبريد أو UID" style="flex:1;">
+                </div>
+                <table id="admin-users-table" class="table" style="margin-top:10px;width:100%;"></table>
+            </div>
+        </div>
+
+        <div id="owner-screen" class="screen" style="display:none;">
+            <h1>إدارة المنشآت (حساب المالك)</h1>
+            <p style="color:#7f8c8d;">الحساب المالك يمكنه عرض جميع المنشآت، الدخول كمستأجر، وتعطيل/تمكين منشأة.</p>
+            <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+                <button type="button" id="owner-refresh">تحديث قائمة المنشآت</button>
+                <button type="button" id="owner-delete-all-users" class="btn-danger">حذف كل المستخدمين والمسئولين</button>
+                <span id="owner-status" style="color:#7f8c8d;"></span>
+            </div>
+            <table id="owner-tenants-table" class="table" style="margin-top:10px;width:100%;"></table>
+        </div>
+
+        <div id="settings-screen" class="screen" style="display:none;">
+            <h1 data-i18n="settings_heading">الإعدادات</h1>
+            <form id="settings-form" class="form-grid" style="gap:10px;grid-template-columns:repeat(2,minmax(220px,1fr));align-items:center;">
+                <div style="grid-column:1/-1;">
+                    <h3>إعدادات الحساب</h3>
+                </div>
+                <div style="grid-column:1/-1;display:flex;gap:8px;align-items:center;">
+                    <div style="flex:1;">
+                        <label for="settings-user-name">اسم المستخدم</label>
+                        <input type="text" id="settings-user-name" placeholder="اكتب اسمك الظاهر">
+                    </div>
+                    <button type="button" id="settings-user-save">حفظ اسم المستخدم</button>
+                    <span id="settings-user-msg" style="color:#7f8c8d;"></span>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <div id="password-change-panel">
+                        <h3>تغيير كلمة المرور</h3>
+                        <label for="current-password">كلمة المرور الحالية</label>
+                        <input type="password" id="current-password" class="login-input" placeholder="••••••">
+                        <label for="new-password">كلمة المرور الجديدة</label>
+                        <input type="password" id="new-password" class="login-input" placeholder="••••••">
+                        <label for="confirm-password">تأكيد كلمة المرور الجديدة</label>
+                        <input type="password" id="confirm-password" class="login-input" placeholder="••••••">
+                        <button type="button" id="btn-change-password">تغيير كلمة المرور</button>
+                        <span id="password-change-msg" style="margin-inline-start:10px;color:#7f8c8d;"></span>
+                    </div>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <hr>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <h3>إعدادات المنشأة</h3>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <label for="settings-org-name" data-i18n="org_name">اسم المنشأة</label>
+                    <input type="text" id="settings-org-name" placeholder="أدخل اسم المنشأة">
+                </div>
+                <div>
+                    <label for="settings-logo-file" data-i18n="org_logo">شعار المنشأة</label>
+                    <input type="file" id="settings-logo-file" accept="image/*">
+                </div>
+                <div>
+                    <label data-i18n="logo_preview">معاينة الشعار</label>
+                    <div id="settings-logo-preview" style="border:1px dashed #ccc; padding:8px; min-height:60px; display:flex; align-items:center; justify-content:center;"></div>
+                </div>
+                <div style="grid-column:1/-1; display:flex; gap:8px; align-items:center;">
+                    <button type="button" id="settings-save" data-i18n="btn_save_settings">حفظ الإعدادات</button>
+                    <button type="button" id="settings-clear-logo" class="btn-secondary" data-i18n="btn_clear_logo">مسح الشعار</button>
+                    <span id="settings-org-msg" style="color:#7f8c8d;"></span>
+                </div>
             </form>
         </div>
 
+        <div class="app-footer">
+            <p class="app-designer">من تصميم Mohamed El Emam — <a class="app-designer-email" href="mailto:FATHY@KKE.BZ">FATHY@KKE.BZ</a></p>
+        </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=20251205"></script>
     <script>
         // إضافة مفاتيح عربية مفقودة للاستخدام مع i18n
         translations.ar = translations.ar || {};
@@ -621,10 +1320,24 @@
         translations.ar['export_description'] = 'تصدير جميع بيانات النظام الحالية إلى ملف JSON كنسخة احتياطية.';
         translations.ar['import_description'] = 'استيراد نسخة احتياطية من ملف JSON (سيتم استبدال البيانات الحالية).';
         translations.ar['clear_warning'] = 'تحذير: هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات الأقسام، والموظفين، والسجلات، والمؤشرات، والأهداف.';
+        translations.ar['workflow_test'] = 'اختبار سير العمل';
+        translations.ar['workflow_test_desc'] = 'إنشاء بيانات تجريبية لكامل المراحل (الأقسام، الموظفين، المؤشرات، الأهداف، السجلات).';
+        translations.ar['btn_run_workflow_test'] = 'تشغيل الاختبار';
         translations.ar['placeholder_employee_search'] = 'ابحث بالاسم أو الرقم التعريفي...';
 
         translations.ar['label_current_total'] = 'المجموع الحالي';
         translations.ar['label_projected_total'] = 'المجموع المتوقع';
+        translations.ar['placeholder_dashboard_search'] = 'ابحث بالاسم أو القسم...';
+        translations.ar['theme_label'] = 'الثيم';
+        translations.ar['theme_light'] = 'فاتح';
+        translations.ar['theme_dark'] = 'داكن';
+
+        // مفاتيح ترجمة للـ placeholders وأزرار شاشة الدخول
+        translations.ar['placeholder_email'] = 'البريد الإلكتروني';
+        translations.ar['placeholder_password'] = 'كلمة المرور';
+        translations.ar['btn_resend_verification'] = 'إعادة إرسال التحقق';
+        translations.ar['btn_check_verification'] = 'تحقق من التفعيل';
+        translations.ar['msg_email_not_verified'] = 'حسابك غير مُفعّل بالبريد. يرجى التحقق قبل الدخول.';
 
         // إضافة ترجمة إنجليزية
         translations.en = {
@@ -659,6 +1372,11 @@
 
             'subtitle_main_stats': 'Main Statistics',
             'subtitle_dept_perf': 'Department Performance (last 90 days)',
+            'subtitle_overall_trend': 'Overall Performance Trend (last 60 days)',
+            'subtitle_overall_trend_base': 'Overall Performance Trend',
+            'period_30_days': 'Last 30 days',
+            'period_60_days': 'Last 60 days',
+            'period_90_days': 'Last 90 days',
             'subtitle_top_emp': 'Top 5 Employees (last 30 days)',
             'subtitle_daily_perf': 'Daily Performance Trend',
             'subtitle_overall_report': 'Organization Overall Performance Report',
@@ -740,6 +1458,7 @@
             'alert_emp_added': 'Employee added successfully!',
             'alert_emp_updated': 'Employee updated successfully!',
             'alert_duplicate_employee_id': 'This employee ID is already used. Please choose another.',
+            'alert_duplicate_department_name': 'This department name is already used. Please choose another.',
 
             'lang_label': 'Language',
             'kpi_list': 'KPIs List',
@@ -753,13 +1472,27 @@
             'export_description': 'Export all current system data to a JSON file as backup.',
             'import_description': 'Import a JSON backup (current data will be replaced).',
             'clear_warning': 'Warning: This action cannot be undone. All departments, employees, records, KPIs, and goals will be deleted.',
+            'workflow_test': 'Workflow Test',
+            'workflow_test_desc': 'Create sample departments, employees, KPIs, goals and a performance record to verify the flow.',
+            'btn_run_workflow_test': 'Run Workflow Test',
             'placeholder_employee_search': 'Search by name or employee ID...'
         };
+
+        // إضافات إنجليزية للـ placeholders وأزرار شاشة الدخول
+        translations.en['placeholder_email'] = 'Email address';
+        translations.en['placeholder_password'] = 'Password';
+        translations.en['btn_resend_verification'] = 'Resend verification';
+        translations.en['btn_check_verification'] = 'Check verification';
+        translations.en['msg_email_not_verified'] = 'Your email is not verified. Please verify before accessing the app.';
 
         translations.ar['table_weight_remaining'] = 'السعة المتبقية';
         translations.en['table_weight_remaining'] = 'Remaining Capacity';
         translations.en['label_current_total'] = 'Current total';
         translations.en['label_projected_total'] = 'Projected total';
+        translations.en['placeholder_dashboard_search'] = 'Search by name or department...';
+        translations.en['theme_label'] = 'Theme';
+        translations.en['theme_light'] = 'Light';
+        translations.en['theme_dark'] = 'Dark';
 
         // إضافات صفحة الأدوار والصلاحيات
         translations.ar['menu_roles'] = 'الأدوار والصلاحيات';
@@ -787,10 +1520,34 @@
         translations.en['role_hr'] = 'HR';
         translations.en['role_data_entry'] = 'Data Entry';
         translations.en['role_viewer'] = 'Viewer';
+        translations.ar['menu_roles_admin'] = 'إدارة الأدوار';
+        translations.en['menu_roles_admin'] = 'User Roles Management';
+        translations.ar['roles_admin_heading'] = 'إدارة الأدوار';
+        translations.en['roles_admin_heading'] = 'User Roles Management';
+
+        translations.ar['menu_settings'] = 'الإعدادات';
+        translations.en['menu_settings'] = 'Settings';
+        translations.ar['settings_heading'] = 'الإعدادات';
+        translations.en['settings_heading'] = 'Settings';
+        translations.ar['org_name'] = 'اسم المنشأة';
+        translations.en['org_name'] = 'Organization Name';
+        translations.ar['org_logo'] = 'شعار المنشأة';
+        translations.en['org_logo'] = 'Organization Logo';
+        translations.ar['logo_preview'] = 'معاينة الشعار';
+        translations.en['logo_preview'] = 'Logo Preview';
+        translations.ar['btn_save_settings'] = 'حفظ الإعدادات';
+        translations.en['btn_save_settings'] = 'Save Settings';
+        translations.ar['btn_clear_logo'] = 'مسح الشعار';
+        translations.en['btn_clear_logo'] = 'Clear Logo';
 
         function handleLanguageChange(lang) {
             localStorage.setItem('language', lang);
             setLanguage(lang);
+        }
+
+        function handleThemeChange(val){
+            localStorage.setItem('theme', val);
+            setTheme(val);
         }
 
         // إعادة تعريف setLanguage لإضافة دعم RTL/LTR وتحديث العناصر الإضافية
@@ -810,19 +1567,46 @@
 
             const empSearch = document.getElementById('employee-search-input');
             if (empSearch) empSearch.placeholder = translate('placeholder_employee_search');
+            const dashSearch = document.getElementById('dashboard-search-input');
+            if (dashSearch) dashSearch.placeholder = translate('placeholder_dashboard_search');
+
+            const emailInput = document.getElementById('auth-email');
+            if (emailInput) emailInput.placeholder = 'اسم المستخدم';
+            const passInput = document.getElementById('auth-password');
+            if (passInput) passInput.placeholder = translate('placeholder_password');
 
             const select = document.getElementById('language-select');
             if (select) select.value = lang;
 
+            const themeSel = document.getElementById('theme-toggle');
+            if (themeSel) themeSel.value = localStorage.getItem('theme') || 'light';
+            const themeSelInline = document.getElementById('theme-toggle-inline');
+            if (themeSelInline) themeSelInline.value = localStorage.getItem('theme') || 'light';
+
             if(window.updateDashboardStats) updateDashboardStats();
             if(window.updateEmployeeDashboard) updateEmployeeDashboard();
+            if(window.renderOrgName) window.renderOrgName();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             const savedLang = localStorage.getItem('language') || currentLanguage || 'ar';
             handleLanguageChange(savedLang);
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            setTheme(savedTheme);
+            if(window.renderOrgName) window.renderOrgName();
         });
+        function setTheme(theme){
+            document.body.classList.remove('theme-light','theme-dark');
+            const t = theme === 'dark' ? 'theme-dark' : 'theme-light';
+            document.body.classList.add(t);
+            const themeSel = document.getElementById('theme-toggle');
+            if (themeSel) themeSel.value = theme;
+            const themeSelInline = document.getElementById('theme-toggle-inline');
+            if (themeSelInline) themeSelInline.value = theme;
+        }
     </script>
 
+    <div id="toast-container" aria-live="polite" role="status"></div>
+    </div>
 </body>
 </html>
