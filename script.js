@@ -1176,7 +1176,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try { history.replaceState(null, document.title, location.pathname); } catch {}
             try { showBanner('تم ربط Supabase بنجاح.', 'ok'); } catch {}
         }
-        if ((!localStorage.getItem('SUPABASE_URL') || !localStorage.getItem('SUPABASE_ANON_KEY')) && typeof window!=='undefined' && (window.SUPABASE_URL && window.SUPABASE_ANON_KEY)){
+        if (typeof window!=='undefined' && (window.SUPABASE_URL && window.SUPABASE_ANON_KEY)){
             try { localStorage.setItem('SUPABASE_URL', String(window.SUPABASE_URL)); localStorage.setItem('SUPABASE_ANON_KEY', String(window.SUPABASE_ANON_KEY)); } catch {}
         }
     } catch {}
