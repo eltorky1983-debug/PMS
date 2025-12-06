@@ -1,7 +1,7 @@
 ;(function(){
 function get(k){try{return localStorage.getItem(k)||''}catch{return''}}
-var url=get('SUPABASE_URL');
-var key=get('SUPABASE_ANON_KEY');
+var url=get('SUPABASE_URL')|| (typeof window!=='undefined' ? (window.SUPABASE_URL||window.SUPABASE_DEFAULT_URL||'') : '');
+var key=get('SUPABASE_ANON_KEY')|| (typeof window!=='undefined' ? (window.SUPABASE_ANON_KEY||window.SUPABASE_DEFAULT_ANON_KEY||'') : '');
 if(!(url&&key)) return;
 if(typeof supabase==='undefined') return;
 var client=supabase.createClient(url,key);

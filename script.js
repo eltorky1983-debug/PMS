@@ -1167,6 +1167,19 @@ function updateKpiWeightInfo() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    try {
+        const params = new URLSearchParams(location.search||'');
+        const u = params.get('supabaseurl');
+        const k = params.get('supabasekey');
+        if (u && k) {
+            try { localStorage.setItem('SUPABASE_URL', u); localStorage.setItem('SUPABASE_ANON_KEY', k); } catch {}
+            try { history.replaceState(null, document.title, location.pathname); } catch {}
+            try { showBanner('تم ربط Supabase بنجاح.', 'ok'); } catch {}
+        }
+        if ((!localStorage.getItem('SUPABASE_URL') || !localStorage.getItem('SUPABASE_ANON_KEY')) && typeof window!=='undefined' && (window.SUPABASE_URL && window.SUPABASE_ANON_KEY)){
+            try { localStorage.setItem('SUPABASE_URL', String(window.SUPABASE_URL)); localStorage.setItem('SUPABASE_ANON_KEY', String(window.SUPABASE_ANON_KEY)); } catch {}
+        }
+    } catch {}
     loadDataFromStorage();
     // التهيئة ببيانات تجريبية عند خلو المخزن، لتسهيل المعاينة
     try {
