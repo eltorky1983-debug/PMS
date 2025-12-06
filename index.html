@@ -23,6 +23,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
     <!-- Firebase compat SDKs -->
     <script src="local-db.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.js" defer></script>
+    <script src="supabase-db.js" defer></script>
 
     <script>
         const translations = {
@@ -1295,6 +1297,21 @@
                     <button type="button" id="settings-save" data-i18n="btn_save_settings">حفظ الإعدادات</button>
                     <button type="button" id="settings-clear-logo" class="btn-secondary" data-i18n="btn_clear_logo">مسح الشعار</button>
                     <span id="settings-org-msg" style="color:#7f8c8d;"></span>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <h3>ربط قاعدة Supabase</h3>
+                </div>
+                <div>
+                    <label>Supabase URL</label>
+                    <input type="text" id="settings-supabase-url" placeholder="https://xxxx.supabase.co">
+                </div>
+                <div>
+                    <label>Anon Key</label>
+                    <input type="text" id="settings-supabase-key" placeholder="الرمز العام">
+                </div>
+                <div style="grid-column:1/-1; display:flex; gap:8px; align-items:center;">
+                    <button type="button" id="settings-supabase-save">حفظ وربط</button>
+                    <span id="settings-supabase-msg" style="color:#7f8c8d;"></span>
                 </div>
             </form>
         </div>

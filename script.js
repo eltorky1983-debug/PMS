@@ -3932,6 +3932,20 @@ function initSettingsScreen(){
         }
     }
     changeBtn && changeBtn.addEventListener('click', changePassword);
+    const supUrlEl = document.getElementById('settings-supabase-url');
+    const supKeyEl = document.getElementById('settings-supabase-key');
+    const supSaveBtn = document.getElementById('settings-supabase-save');
+    const supMsg = document.getElementById('settings-supabase-msg');
+    try { if (supUrlEl) supUrlEl.value = localStorage.getItem('SUPABASE_URL')||''; if (supKeyEl) supKeyEl.value = localStorage.getItem('SUPABASE_ANON_KEY')||''; } catch {}
+    if (supSaveBtn) {
+        supSaveBtn.onclick = function(){
+            const u = (supUrlEl && supUrlEl.value || '').trim();
+            const k = (supKeyEl && supKeyEl.value || '').trim();
+            if (!u || !k) { if (supMsg) supMsg.textContent = 'أدخل العنوان والمفتاح.'; return; }
+            try { localStorage.setItem('SUPABASE_URL', u); localStorage.setItem('SUPABASE_ANON_KEY', k); } catch {}
+            if (supMsg) supMsg.textContent = 'تم حفظ الربط. أعد تحميل الصفحة لتفعيل Supabase.';
+        };
+    }
 }
 window.initSettingsScreen = initSettingsScreen;
 function buildPrintHeader(title){

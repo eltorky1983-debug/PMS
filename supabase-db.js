@@ -1,0 +1,13 @@
+;(function(){
+function get(k){try{return localStorage.getItem(k)||''}catch{return''}}
+var url=get('SUPABASE_URL');
+var key=get('SUPABASE_ANON_KEY');
+if(!(url&&key)) return;
+if(typeof supabase==='undefined') return;
+var client=supabase.createClient(url,key);
+function Q(name){this._filters=[];this._limit=null;this._order=null;this.where=function(f,op,v){this._filters.push({f,op,v});return this};this.limit=function(n){this._limit=n;return this};this.orderBy=function(f,dir){this._order={f,dir};return this};this.get=async function(){let q=client.from(name).select('*');this._filters.forEach(x=>{if(x.op==='==') q=q.eq(x.f,x.v)});if(this._order){q=q.order(this._order.f,{ascending:(this._order.dir!=='desc')})}if(this._limit!=null){q=q.limit(this._limit)}const r=await q;const rows=(r.data||[]).map(d=>({id:d.id,data:()=>d,ref:new D(name,d.id)}));return{docs:rows,empty:rows.length===0}}}
+function D(name,id){this.id=id;this.get=async function(){const r=await client.from(name).select('*').eq('id',id).maybeSingle();const exists=!!r.data;const data=r.data||{};return{exists:exists,data:()=>data,ref:this}};this.set=async function(data,opt){if(opt&&opt.merge){const cur=await client.from(name).select('*').eq('id',id).maybeSingle();const merged=Object.assign({},cur.data||{},data);await client.from(name).update(merged).eq('id',id)}else{const cur=await client.from(name).select('*').eq('id',id).maybeSingle();if(cur.data) await client.from(name).update(data).eq('id',id);else await client.from(name).insert(Object.assign({},data,{id:id}))}};this.delete=async function(){await client.from(name).delete().eq('id',id)}}
+function C(name){this.doc=function(id){return new D(name,id)};this.add=async function(data){const r=await client.from(name).insert(data).select('id').maybeSingle();const newId=(r.data&&r.data.id)||null;return{id:newId,ref:new D(name,newId)}};this.where=function(f,op,v){return new Q(name).where(f,op,v)};this.limit=function(n){return new Q(name).limit(n)};this.orderBy=function(f,dir){return new Q(name).orderBy(f,dir)};this.get=async function(){return new Q(name).get()}}
+function B(){this.ops=[];this.delete=function(ref){this.ops.push({type:'delete',ref})};this.commit=async function(){for(var i=0;i<this.ops.length;i++){var o=this.ops[i];if(o.type==='delete') await o.ref.delete()}this.ops=[]}}
+window.db={collection:function(n){return new C(n)},batch:function(){return new B()}};
+})();
